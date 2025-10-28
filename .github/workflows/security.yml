@@ -1,0 +1,164 @@
+name: Security and Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install bandit safety pip-audit ruff mypy
+    
+    - name: Run Ruff (linting)
+      run: |
+        cd backend
+        ruff check . --output-format=github
+    
+    - name: Run Bandit (security)
+      run: |
+        cd backend
+        bandit -r app/ -f json -o bandit_report.json || true
+        bandit -r app/ -f txt
+    
+    - name: Run Safety (dependencies)
+      run: |
+        cd backend
+        safety check -r requirements.txt --output json --output-file safety_report.json || true
+        safety check -r requirements.txt
+    
+    - name: Run pip-audit
+      run: |
+        cd backend
+        pip-audit --format=json --output=pip_audit_report.json || true
+        pip-audit
+    
+    - name: Check for secrets
+      run: |
+        cd backend
+        echo "Checking for hardcoded secrets..."
+        if git ls-files -z | xargs -0 rg -n 'SECRET_KEY\s*=\s*["\'][^"\']{32,}["\']|API_KEY\s*=\s*["\'][^"\']+["\']|your-vapid|password\s*=\s*["\'][^"\']+["\']' --type py; then
+          echo "❌ Hardcoded secrets found!"
+          exit 1
+        else
+          echo "✅ No hardcoded secrets found"
+        fi
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          backend/bandit_report.json
+          backend/safety_report.json
+          backend/pip_audit_report.json
+
+  tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov
+    
+    - name: Set up test environment
+      run: |
+        cd backend
+        export SECRET_KEY="test_secret_key_with_minimum_32_characters_required"
+        export ENCRYPTION_KEY="test_encryption_key_minimum_32_chars"
+        export DATABASE_URL="sqlite:///./test.db"
+    
+    - name: Run tests
+      run: |
+        cd backend
+        export SECRET_KEY="test_secret_key_with_minimum_32_characters_required"
+        export ENCRYPTION_KEY="test_encryption_key_minimum_32_chars"
+        export DATABASE_URL="sqlite:///./test.db"
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+    
+    - name: Run critical fixes tests
+      run: |
+        cd backend
+        export SECRET_KEY="test_secret_key_with_minimum_32_characters_required"
+        export ENCRYPTION_KEY="test_encryption_key_minimum_32_chars"
+        pytest tests/test_critical_fixes.py -v
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/coverage.xml
+
+  security-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install requests
+    
+    - name: Start application
+      run: |
+        cd backend
+        export SECRET_KEY="test_secret_key_with_minimum_32_characters_required"
+        export ENCRYPTION_KEY="test_encryption_key_minimum_32_chars"
+        export DATABASE_URL="sqlite:///./test.db"
+        python main.py &
+        sleep 10
+    
+    - name: Run security tests
+      run: |
+        cd backend
+        python scripts/security_test.py
+    
+    - name: Upload security test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-test-results
+        path: backend/security_test_results.json

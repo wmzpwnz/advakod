@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: advakod_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./static:/app/static:ro
+      - ./media:/app/media:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend Server
+  backend:
+    build: ./backend
+    container_name: advakod_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://user:password@advakod_postgres:5432/ai_lawyer
+      - POSTGRES_PASSWORD=SecurePassword123456
+      - QDRANT_URL=http://advakod_qdrant:6333
+      - REDIS_URL=redis://advakod_redis:6379
+      - CORS_ORIGINS=https://advacodex.com,https://www.advacodex.com
+      - TRUSTED_HOSTS=advacodex.com,*.advacodex.com,localhost,127.0.0.1,advakod_backend
+      - ADMIN_IP_WHITELIST=127.0.0.1,::1,localhost,31.130.145.75,193.233.106.104
+      - VISTRAL_MODEL_PATH=/opt/advakod/models/vistral/Vistral-24B-Instruct-Q5_0.gguf
+    volumes:
+      - ./backend:/app
+      - ./static:/app/static
+      - ./media:/app/media
+      - /opt/advakod/models:/opt/advakod/models:ro
+    depends_on:
+      - postgres
+      - qdrant
+      - redis
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: advakod_frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - REACT_APP_API_URL=https://advacodex.com/api/v1
+      - REACT_APP_WS_URL=wss://advacodex.com/ws
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: advakod_postgres
+    environment:
+      - POSTGRES_DB=ai_lawyer
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d ai_lawyer"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: advakod_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/collections"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: advakod_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Codes System (if needed)
+  codes-system:
+    build: 
+      context: .
+      dockerfile: docker/codes-downloader.Dockerfile
+    container_name: advakod-codes-system
+    environment:
+      - POSTGRES_HOST=advakod-postgres-codes
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=codes_db
+      - POSTGRES_USER=codes_user
+      - POSTGRES_PASSWORD=codes_password
+    depends_on:
+      - postgres-codes
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  # PostgreSQL for Codes System
+  postgres-codes:
+    image: postgres:15-alpine
+    container_name: advakod-postgres-codes
+    environment:
+      - POSTGRES_DB=codes_db
+      - POSTGRES_USER=codes_user
+      - POSTGRES_PASSWORD=codes_password
+    volumes:
+      - postgres_codes_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codes_user -d codes_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  postgres_codes_data:
+  qdrant_data:
+
+networks:
+  advakod_default:
+    driver: bridge

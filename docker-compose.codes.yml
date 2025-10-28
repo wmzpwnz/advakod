@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  codes-downloader:
+    build:
+      context: .
+      dockerfile: docker/codes-downloader.Dockerfile
+    container_name: advakod-codes-downloader
+    volumes:
+      - ./data/legal_documents:/app/data/legal_documents
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    networks:
+      - advakod-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+    command: ["python", "/app/scripts/download_codes.py"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: advakod-redis-codes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_codes_data:/data
+    networks:
+      - advakod-network
+    restart: unless-stopped
+
+volumes:
+  redis_codes_data:
+
+networks:
+  advakod-network:
+    external: true

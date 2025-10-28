@@ -1,0 +1,83 @@
+{
+  "timestamp": "2025-10-26T12:17:40.133057",
+  "summary": {
+    "total_files": 5,
+    "valid_files": 0,
+    "invalid_files": 5,
+    "validation_rate": 0.0
+  },
+  "document_types": {
+    "general_legal": {
+      "count": 5,
+      "valid": 0,
+      "avg_score": 0.0
+    }
+  },
+  "detailed_results": [
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/289-11.pdf",
+      "file_name": "289-11.pdf",
+      "file_size": 121640,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 53941,
+      "validation_timestamp": "2025-10-26T12:17:37.137026",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/0001201905010039.pdf",
+      "file_name": "0001201905010039.pdf",
+      "file_size": 521624,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 260099,
+      "validation_timestamp": "2025-10-26T12:17:38.542952",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/198.pdf",
+      "file_name": "198.pdf",
+      "file_size": 109298,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 54508,
+      "validation_timestamp": "2025-10-26T12:17:38.845785",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/0001201410140002.pdf",
+      "file_name": "0001201410140002.pdf",
+      "file_size": 204144,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 101284,
+      "validation_timestamp": "2025-10-26T12:17:39.535907",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/0001202203030006.pdf",
+      "file_name": "0001202203030006.pdf",
+      "file_size": 234667,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 110784,
+      "validation_timestamp": "2025-10-26T12:17:40.132629",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    }
+  ]
+}

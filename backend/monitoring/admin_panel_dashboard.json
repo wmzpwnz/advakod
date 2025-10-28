@@ -1,0 +1,621 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "АДВАКОД Admin Panel Performance Dashboard",
+    "tags": ["admin-panel", "performance", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Admin Panel Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(admin_panel_http_requests_total[5m]))",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "avg(admin_panel_http_request_duration_seconds{quantile=\"0.95\"})",
+            "legendFormat": "95th Percentile Response Time",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(admin_panel_active_users)",
+            "legendFormat": "Active Admin Users",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(admin_panel_errors_total[5m])",
+            "legendFormat": "Error Rate",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {"displayMode": "list", "orientation": "horizontal"},
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Requests by Module",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(admin_panel_http_requests_total[5m])) by (module)",
+            "legendFormat": "{{module}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            },
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time by Module",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(admin_panel_http_request_duration_seconds_bucket[5m])) by (module, le))",
+            "legendFormat": "{{module}} - 95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(admin_panel_http_request_duration_seconds_bucket[5m])) by (module, le))",
+            "legendFormat": "{{module}} - 50th percentile",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active Users by Role",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(admin_panel_active_users) by (role)",
+            "legendFormat": "{{role}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false}
+            },
+            "mappings": []
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "RBAC Operations",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(admin_panel_rbac_role_changes_total[5m])) by (operation)",
+            "legendFormat": "{{operation}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Moderation Queue Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(admin_panel_moderation_queue_size) by (priority)",
+            "legendFormat": "{{priority}} Priority",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Marketing Funnel Performance",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "admin_panel_marketing_funnel_users",
+            "legendFormat": "{{stage}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "continuous-GrYlRd"},
+            "custom": {
+              "orientation": "horizontal",
+              "barAlignment": 0,
+              "displayMode": "gradient"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Project Tasks by Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(admin_panel_project_tasks) by (status)",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "displayMode": "list",
+              "orientation": "horizontal"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "todo": {"color": "blue", "index": 0},
+                  "in_progress": {"color": "yellow", "index": 1},
+                  "done": {"color": "green", "index": 2},
+                  "blocked": {"color": "red", "index": 3}
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Notification Delivery Performance",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(admin_panel_notifications_delivery_seconds_bucket[5m])) by (channel, le))",
+            "legendFormat": "{{channel}} - 95th percentile",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 30}
+              ]
+            },
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Analytics Query Performance",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(admin_panel_analytics_query_duration_seconds_bucket[5m])) by (query_type, le))",
+            "legendFormat": "{{query_type}} - 95th percentile",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 60}
+              ]
+            },
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Backup Operations Status",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "sum(admin_panel_backup_operations_total) by (operation_type, backup_type, status)",
+            "legendFormat": "{{operation_type}} - {{backup_type}} - {{status}}",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Cache Hit Rate by Module",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+        "targets": [
+          {
+            "expr": "rate(admin_panel_cache_hits_total[5m]) / (rate(admin_panel_cache_hits_total[5m]) + rate(admin_panel_cache_misses_total[5m])) * 100",
+            "legendFormat": "{{module}} Cache Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "WebSocket Connections",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48},
+        "targets": [
+          {
+            "expr": "admin_panel_websocket_connections",
+            "legendFormat": "{{connection_type}} - {{user_role}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Feature Usage Trends",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48},
+        "targets": [
+          {
+            "expr": "rate(admin_panel_feature_usage_total[5m])",
+            "legendFormat": "{{feature}} - {{module}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {"mode": "none", "group": "A"},
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "scaleDistribution": {"type": "linear"},
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "ops"
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "hide": 0,
+          "includeAll": true,
+          "label": "Module",
+          "multi": true,
+          "name": "module",
+          "options": [],
+          "query": "label_values(admin_panel_http_requests_total, module)",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "tagValuesQuery": "",
+          "tagsQuery": "",
+          "type": "query",
+          "useTags": false
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "hide": 0,
+          "includeAll": true,
+          "label": "User Role",
+          "multi": true,
+          "name": "user_role",
+          "options": [],
+          "query": "label_values(admin_panel_http_requests_total, user_role)",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "tagValuesQuery": "",
+          "tagsQuery": "",
+          "type": "query",
+          "useTags": false
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 0,
+    "links": [],
+    "liveNow": false,
+    "schemaVersion": 27,
+    "version": 1,
+    "weekStart": ""
+  }
+}

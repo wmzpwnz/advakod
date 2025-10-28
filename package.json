@@ -1,0 +1,30 @@
+{
+  "name": "advakod",
+  "version": "2.0.0",
+  "description": "АДВАКОД - ИИ-Юрист для РФ с RAG интеграцией",
+  "keywords": ["ai", "law", "legal", "russia", "rag", "llm"],
+  "author": "ADVAKOD Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/advakod.git"
+  },
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "frontend": "cd frontend && npm start",
+    "dev": "npm run start",
+    "build": "cd frontend && npm run build",
+    "install-all": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "test": "cd backend && python -m pytest",
+    "lint": "cd backend && flake8 . && cd ../frontend && npm run lint",
+    "format": "cd backend && black . && cd ../frontend && npm run format"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}
