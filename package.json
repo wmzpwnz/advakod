@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/advakod.git"
+    "url": "https://github.com/wmzpwnz/advakod.git"
   },
   "scripts": {
     "start": "concurrently \"npm run backend\" \"npm run frontend\"",
