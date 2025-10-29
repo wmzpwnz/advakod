@@ -1,7 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+import logging
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 # Определяем настройки движка в зависимости от типа БД
 def get_engine_config():
@@ -40,6 +44,22 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except Exception as e:
+        logger.error(f"Database session error: {e}")
+        db.rollback()
+        raise
     finally:
         db.close()
+
+
+def init_db():
+    """Инициализация базы данных"""
+    try:
+        # Импортируем все модели здесь для создания таблиц
+        from app.models import user, chat, feedback, analytics
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise
 

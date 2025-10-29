@@ -98,7 +98,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
     
     # CORS настройки - безопасная конфигурация
-    BACKEND_CORS_ORIGINS: list = []
     CORS_ORIGINS: Optional[str] = None
     
     def get_cors_origins(self) -> list:
