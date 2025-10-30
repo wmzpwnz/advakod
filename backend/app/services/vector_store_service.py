@@ -23,10 +23,83 @@ class VectorStoreService:
         self.collection = None
         self.collection_name = os.getenv("CHROMA_COLLECTION_NAME", "legal_documents")
         # Используем относительный путь от корня проекта
-        self.db_path = os.getenv("CHROMA_DB_PATH", os.path.join(os.getcwd(), "backend", "data", "chroma_db"))
+        self.db_path = os.getenv("CHROMA_DB_PATH", os.path.join(os.getcwd(), "data", "chroma_db"))
         self.is_initialized = False
         # НЕ инициализируем при создании - только при первом использовании
         
+    def _check_schema_compatibility(self) -> bool:
+        """Проверяет совместимость схемы ChromaDB"""
+        try:
+            import sqlite3
+            sqlite_path = os.path.join(self.db_path, "chroma.sqlite3")
+            
+            if not os.path.exists(sqlite_path):
+                # Новая база данных - схема будет создана автоматически
+                logger.info("📁 База данных ChromaDB не существует - будет создана новая")
+                return True
+                
+            with sqlite3.connect(sqlite_path) as conn:
+                cursor = conn.cursor()
+                
+                # Проверяем наличие таблицы collections
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='collections'")
+                if not cursor.fetchone():
+                    logger.info("📋 Таблица collections не существует - будет создана")
+                    return True  # Таблица не существует - будет создана
+                
+                # Проверяем наличие колонки topic в таблице collections
+                cursor.execute("PRAGMA table_info(collections)")
+                columns = [row[1] for row in cursor.fetchall()]
+                
+                if 'topic' not in columns:
+                    logger.warning("⚠️ Обнаружена несовместимость схемы ChromaDB: отсутствует колонка 'topic'")
+                    return False
+                
+                logger.info("✅ Схема ChromaDB совместима")
+                return True
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось проверить схему ChromaDB: {e}")
+            return True  # Продолжаем инициализацию
+    
+    def _migrate_schema_if_needed(self) -> bool:
+        """Выполняет миграцию схемы если необходимо"""
+        try:
+            if self._check_schema_compatibility():
+                return True
+                
+            logger.info("🔄 Выполняем миграцию схемы ChromaDB...")
+            
+            # Импортируем и запускаем миграцию
+            import subprocess
+            import sys
+            
+            migration_script = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "scripts", "chromadb_migration.py"
+            )
+            
+            if os.path.exists(migration_script):
+                result = subprocess.run([
+                    sys.executable, migration_script, 
+                    "--db-path", self.db_path,
+                    "--force"
+                ], capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    logger.info("✅ Миграция схемы ChromaDB выполнена успешно")
+                    return True
+                else:
+                    logger.error(f"❌ Ошибка миграции схемы: {result.stderr}")
+                    return False
+            else:
+                logger.error(f"❌ Скрипт миграции не найден: {migration_script}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка при миграции схемы: {e}")
+            return False
+
     def initialize(self):
         """Инициализация ChromaDB"""
         try:
@@ -34,6 +107,12 @@ class VectorStoreService:
             os.makedirs(self.db_path, exist_ok=True)
             
             logger.info(f"🚀 Инициализируем ChromaDB в {self.db_path}")
+            
+            # Проверяем и мигрируем схему если необходимо
+            if not self._migrate_schema_if_needed():
+                logger.error("❌ Не удалось выполнить миграцию схемы ChromaDB")
+                self.is_initialized = False
+                return
             
             # Создаем клиент ChromaDB
             self.client = chromadb.PersistentClient(
@@ -68,6 +147,11 @@ class VectorStoreService:
             
         except Exception as e:
             logger.error(f"❌ Ошибка инициализации ChromaDB: {e}")
+            logger.error(f"Возможные причины:")
+            logger.error(f"  1. Несовместимость версий ChromaDB")
+            logger.error(f"  2. Поврежденная база данных")
+            logger.error(f"  3. Проблемы с правами доступа")
+            logger.error(f"Попробуйте запустить миграцию: python scripts/chromadb_migration.py")
             self.is_initialized = False
     
     def is_ready(self) -> bool:
@@ -273,7 +357,14 @@ class VectorStoreService:
                     # ChromaDB возвращает расстояние (чем меньше, тем лучше)
                     # Конвертируем в сходство (чем больше, тем лучше)
                     distance = distances[i] if i < len(distances) else 1.0
-                    similarity = 1.0 - distance  # Приблизительное преобразование
+                    # Для косинусного расстояния: similarity = 1 - distance
+                    # Но ChromaDB может возвращать различные типы расстояний
+                    # Используем более безопасное преобразование
+                    if distance <= 1.0:
+                        similarity = 1.0 - distance
+                    else:
+                        # Для евклидова расстояния используем другую формулу
+                        similarity = 1.0 / (1.0 + distance)
                     
                     logger.info(f"📄 Документ {i+1}: similarity={similarity:.3f}, distance={distance:.3f}, content_length={len(content)}")
                     

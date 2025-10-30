@@ -222,13 +222,44 @@ class ServiceManager:
                                  dependency, service_name, dep_service.status.value)
                     return False
             else:
-                # Зависимость не является управляемым сервисом - проверяем внешние зависимости
-                if not await self._check_external_dependency(dependency):
+                # Зависимость не является управляемым сервисом - используем dependency_manager
+                if not await self._check_external_dependency_via_manager(dependency):
                     logger.warning("⚠️ Внешняя зависимость %s для сервиса %s не готова", 
                                  dependency, service_name)
                     return False
         
         return True
+    
+    async def _check_external_dependency_via_manager(self, dependency: str) -> bool:
+        """Проверяет внешние зависимости через dependency_manager"""
+        
+        try:
+            from ..core.dependency_manager import dependency_manager
+            
+            # Получаем статус зависимости из dependency_manager
+            dep_status = dependency_manager.get_dependency_status()
+            
+            # Маппинг имен зависимостей
+            dependency_mapping = {
+                "vector_store": "chromadb",
+                "embeddings": "embeddings_model",
+                "database": "postgresql",
+                "cache": "redis"
+            }
+            
+            mapped_name = dependency_mapping.get(dependency, dependency)
+            
+            if mapped_name in dep_status:
+                status = dep_status[mapped_name]["status"]
+                return status == "available"
+            else:
+                # Fallback на старый метод проверки
+                return await self._check_external_dependency(dependency)
+                
+        except Exception as e:
+            logger.warning(f"Error checking dependency {dependency} via manager: {e}")
+            # Fallback на старый метод проверки
+            return await self._check_external_dependency(dependency)
     
     async def _check_external_dependency(self, dependency: str) -> bool:
         """Проверяет внешние зависимости"""

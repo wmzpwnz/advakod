@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
 // АДВАКОД - ИИ-Юрист для РФ
 
-const CACHE_NAME = 'advakod-notifications-v1';
+const CACHE_NAME = 'advakod-notifications-v2';
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
@@ -42,11 +42,21 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Удаляем все старые кеши и кеш runtime
+      return caches.delete('advakod-notifications-v1');
     })
   );
   
   // Claim all clients immediately
   self.clients.claim();
+  
+  // Принудительно обновляем все клиенты
+  return self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({ type: 'CACHE_UPDATED', version: CACHE_NAME });
+    });
+  });
 });
 
 // Fetch event (basic caching strategy)

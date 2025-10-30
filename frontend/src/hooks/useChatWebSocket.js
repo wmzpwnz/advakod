@@ -1,8 +1,31 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ResilientWebSocket from '../services/ResilientWebSocket';
+import { WS_BASE_URL } from '../config/api';
 
 /**
- * Упрощенный хук для WebSocket чата - БЕЗ useWebSocket!
+ * Обработка закрытия WebSocket соединения
+ */
+const handleWebSocketClose = (code, reason) => {
+  const errorMap = {
+    1008: 'Authentication failed',
+    1003: 'Access denied', 
+    1011: 'Server error',
+    1006: 'Connection lost',
+    1000: 'Normal closure'
+  };
+  
+  const message = errorMap[code] || 'Unknown error';
+  console.log(`WebSocket closed: ${code} - ${message} (${reason})`);
+  
+  // Не переподключаемся при ошибках аутентификации и доступа
+  const permanentErrors = [1008, 1003];
+  return !permanentErrors.includes(code);
+};
+
+/**
+ * Хук для WebSocket чата с использованием ResilientWebSocket
+ * Реализует требования 2.2, 2.3, 6.3 из спецификации
  */
 export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpdate) => {
   const { user } = useAuth();
@@ -10,37 +33,26 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
   const isTypingRef = useRef(false);
   const websocketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
-  const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 3;
-  const reconnectTimeoutRef = useRef(null);
-  const pingIntervalRef = useRef(null);
+  const [connectionState, setConnectionState] = useState('disconnected');
 
-  // Функция создания WebSocket соединения
+  // Функция создания ResilientWebSocket соединения
   const createWebSocket = useCallback(() => {
     if (!user) return null;
     
     const token = localStorage.getItem('token');
     if (!token) return null;
     
-    // Защита от множественных подключений
-    if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected, skipping creation');
-      return websocketRef.current;
-    }
-    
     // Закрываем старое соединение перед созданием нового
     if (websocketRef.current) {
-      websocketRef.current.close();
+      websocketRef.current.disconnect();
       websocketRef.current = null;
     }
     
     // Защита от некорректных sessionId
     const cleanSessionId = sessionId ? String(sessionId).replace(/[^0-9]/g, '') : null;
     
-    // Используем переменные окружения для WebSocket URL
-    const wsBaseUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
-    const wsProtocol = wsBaseUrl.startsWith('wss://') ? 'wss://' : 'ws://';
-    const wsHost = wsBaseUrl.replace(/^wss?:\/\//, '');
+    // Используем общий конфиг для WebSocket URL (без localhost по умолчанию)
+    const wsBaseUrl = process.env.REACT_APP_WS_URL || WS_BASE_URL;
     
     let url;
     if (cleanSessionId && cleanSessionId.length > 0) {
@@ -49,138 +61,95 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
       url = `${wsBaseUrl}/general?token=${token}`;
     }
     
-    console.log('Creating WebSocket connection to:', url);
-    
-    // Закрываем старое соединение перед созданием нового
-    if (websocketRef.current) {
-      websocketRef.current.close();
-      websocketRef.current = null;
-    }
+    console.log('Creating ResilientWebSocket connection to:', url);
     
     try {
-      const ws = new WebSocket(url);
+      const ws = new ResilientWebSocket(url, {
+        maxReconnectAttempts: 10,
+        reconnectDelay: 1000,
+        maxReconnectDelay: 30000,
+        pingInterval: 30000,
+        pongTimeout: 10000
+      });
+      
       websocketRef.current = ws;
       
-      ws.onopen = () => {
-        console.log('WebSocket connected successfully');
+      // Обработчики событий
+      ws.on('open', () => {
+        console.log('ResilientWebSocket connected successfully');
         setIsConnected(true);
-        reconnectAttemptsRef.current = 0;
-      };
+      });
       
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
-          
-          if (data.type === 'pong') {
-            console.log('Pong received');
-            return;
-          }
-          
-          // Обрабатываем другие сообщения
-          switch (data.type) {
-            case 'new_message':
-              onNewMessage?.(data.data);
-              break;
-            case 'typing':
-              onTyping?.(data.user_id, data.is_typing);
-              break;
-            case 'session_update':
-              onSessionUpdate?.(data.data);
-              break;
-            case 'generation_stopped':
-              // Обработка остановки генерации
-              console.log('Generation stopped:', data.message);
-              // Можно добавить callback для обработки остановки
-              break;
-            default:
-              console.log('Unknown message type:', data.type);
-              break;
-          }
-        } catch (err) {
-          console.error('Error parsing WebSocket message:', err);
-        }
-      };
-      
-      ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
+      ws.on('close', ({ code, reason }) => {
+        console.log('ResilientWebSocket closed:', code, reason);
         setIsConnected(false);
-
-        // НЕ переподключаемся при фатальных ошибках
-        if (event.code === 1008 || event.code === 404 || event.code === 1003) {
-          console.log('Permanent error, not reconnecting');
+      });
+      
+      ws.on('stateChange', (state) => {
+        console.log('ResilientWebSocket state changed:', state);
+        setConnectionState(state);
+        setIsConnected(state === 'connected');
+      });
+      
+      ws.on('message', (data) => {
+        console.log('ResilientWebSocket message received:', data);
+        
+        if (data.type === 'pong') {
+          console.log('Pong received');
           return;
         }
-
-        // Переподключение с ограничениями для других ошибок
-        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-          reconnectAttemptsRef.current++;
-          const delay = 1000 * reconnectAttemptsRef.current;
-          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            createWebSocket();
-          }, delay);
-        } else {
-          console.log('Max reconnection attempts reached');
+        
+        // Обрабатываем другие сообщения
+        switch (data.type) {
+          case 'new_message':
+            onNewMessage?.(data.data);
+            break;
+          case 'typing':
+            onTyping?.(data.user_id, data.is_typing);
+            break;
+          case 'session_update':
+            onSessionUpdate?.(data.data);
+            break;
+          case 'generation_stopped':
+            console.log('Generation stopped:', data.message);
+            break;
+          default:
+            console.log('Unknown message type:', data.type);
+            break;
         }
-      };
+      });
       
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+      ws.on('error', (error) => {
+        console.error('ResilientWebSocket error:', error);
+      });
+      
+      // Подключаемся
+      ws.connect().catch(error => {
+        console.error('Failed to connect ResilientWebSocket:', error);
+      });
       
       return ws;
     } catch (err) {
-      console.error('Failed to create WebSocket:', err);
+      console.error('Failed to create ResilientWebSocket:', err);
       return null;
     }
   }, [user, sessionId, onNewMessage, onTyping, onSessionUpdate]);
 
-  // Ping для поддержания соединения
-  useEffect(() => {
-    if (!isConnected) return;
-    
-    pingIntervalRef.current = setInterval(() => {
-      if (websocketRef.current?.readyState === WebSocket.OPEN) {
-        websocketRef.current.send(JSON.stringify({
-          type: 'ping',
-          timestamp: Date.now()
-        }));
-      }
-    }, 30000); // Каждые 30 секунд
-    
-    return () => {
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-      }
-    };
-  }, [isConnected]);
+  // Ping/pong обрабатывается автоматически в ResilientWebSocket
 
   // Подключение при монтировании
   useEffect(() => {
     if (user && sessionId !== undefined) {
-      // Защита от множественных подключений
-      if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
-        console.log('WebSocket already connected, skipping creation');
-        return;
-      }
       createWebSocket();
     }
 
     return () => {
       // Очистка при размонтировании
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-      }
       if (websocketRef.current) {
-        websocketRef.current.close();
+        websocketRef.current.disconnect();
         websocketRef.current = null;
       }
     };
@@ -188,21 +157,15 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
 
   // Функция для отправки сообщений
   const sendMessage = useCallback((message) => {
-    if (websocketRef.current?.readyState === WebSocket.OPEN) {
-      try {
-        // Добавляем sessionId ко всем сообщениям
-        const payload = {
-          ...message,
-          session_id: sessionId
-        };
-        websocketRef.current.send(JSON.stringify(payload));
-        return true;
-      } catch (error) {
-        console.error('Error sending WebSocket message:', error);
-        return false;
-      }
+    if (websocketRef.current) {
+      // Добавляем sessionId ко всем сообщениям
+      const payload = {
+        ...message,
+        session_id: sessionId
+      };
+      return websocketRef.current.send(payload);
     }
-    console.warn('WebSocket not connected, message not sent');
+    console.warn('ResilientWebSocket not available, message queued');
     return false;
   }, [sessionId]);
 
@@ -255,8 +218,8 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
 
   // Функция для ручного подключения
   const connect = useCallback(() => {
-    if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
+    if (websocketRef.current && websocketRef.current.isConnected) {
+      console.log('ResilientWebSocket already connected');
       return;
     }
     createWebSocket();
@@ -264,23 +227,33 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
 
   // Функция для отключения
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
     if (websocketRef.current) {
-      websocketRef.current.close();
+      websocketRef.current.disconnect();
       websocketRef.current = null;
     }
     setIsConnected(false);
+    setConnectionState('disconnected');
   }, []);
+
+  // Функция для принудительного переподключения
+  const forceReconnect = useCallback(() => {
+    if (websocketRef.current) {
+      websocketRef.current.reconnect();
+    } else {
+      createWebSocket();
+    }
+  }, [createWebSocket]);
 
   return {
     isConnected,
+    connectionState,
+    websocket: websocketRef.current,
     sendTyping,
     joinSession,
     sendChatMessage,
     stopGeneration,
     connect,
-    disconnect
+    disconnect,
+    forceReconnect
   };
 };

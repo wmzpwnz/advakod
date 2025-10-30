@@ -309,7 +309,7 @@ class NotificationChannelService:
     
     # Channel health check
     async def health_check_all_channels(self, db: Session) -> Dict[str, Any]:
-        """Perform health check on all active channels"""
+        """Perform health check on all active channels with graceful error handling"""
         try:
             channels = await self.get_channels(db, is_active=True)
             
@@ -317,39 +317,136 @@ class NotificationChannelService:
                 'total_channels': len(channels),
                 'healthy_channels': 0,
                 'unhealthy_channels': 0,
-                'channel_results': []
+                'channel_results': [],
+                'last_check': datetime.utcnow().isoformat(),
+                'status': 'completed'
             }
             
             for channel in channels:
+                channel_result = {
+                    'channel_id': channel.id,
+                    'channel_name': channel.name,
+                    'channel_type': channel.type.value,
+                    'last_check': datetime.utcnow().isoformat()
+                }
+                
                 try:
-                    # Simple health check - just validate configuration
+                    # Validate configuration
                     await self._validate_channel_config(channel.type, channel.configuration)
                     
-                    results['healthy_channels'] += 1
-                    results['channel_results'].append({
-                        'channel_id': channel.id,
-                        'channel_name': channel.name,
-                        'channel_type': channel.type.value,
+                    # Additional health checks based on channel type
+                    health_details = await self._perform_detailed_health_check(channel)
+                    
+                    channel_result.update({
                         'status': 'healthy',
-                        'last_check': datetime.utcnow().isoformat()
+                        'success_rate': channel.success_rate,
+                        'total_sent': channel.total_sent,
+                        'total_failed': channel.total_failed,
+                        'last_used': channel.last_used_at.isoformat() if channel.last_used_at else None,
+                        'health_details': health_details
                     })
                     
+                    results['healthy_channels'] += 1
+                    
                 except Exception as e:
-                    results['unhealthy_channels'] += 1
-                    results['channel_results'].append({
-                        'channel_id': channel.id,
-                        'channel_name': channel.name,
-                        'channel_type': channel.type.value,
+                    channel_result.update({
                         'status': 'unhealthy',
                         'error': str(e),
-                        'last_check': datetime.utcnow().isoformat()
+                        'error_type': type(e).__name__,
+                        'success_rate': channel.success_rate,
+                        'total_sent': channel.total_sent,
+                        'total_failed': channel.total_failed
                     })
+                    
+                    results['unhealthy_channels'] += 1
+                    logger.warning(f"Channel {channel.id} ({channel.name}) health check failed: {e}")
+                
+                results['channel_results'].append(channel_result)
             
+            # Calculate overall health status
+            if results['total_channels'] == 0:
+                results['overall_status'] = 'no_channels'
+            elif results['unhealthy_channels'] == 0:
+                results['overall_status'] = 'all_healthy'
+            elif results['healthy_channels'] == 0:
+                results['overall_status'] = 'all_unhealthy'
+            else:
+                results['overall_status'] = 'partially_healthy'
+            
+            logger.info(f"Channel health check completed: {results['healthy_channels']}/{results['total_channels']} healthy")
             return results
             
         except Exception as e:
-            logger.error(f"Error in channel health check: {e}")
-            raise
+            logger.error(f"Critical error in channel health check: {e}")
+            # Return a safe fallback result instead of raising
+            return {
+                'total_channels': 0,
+                'healthy_channels': 0,
+                'unhealthy_channels': 0,
+                'channel_results': [],
+                'last_check': datetime.utcnow().isoformat(),
+                'status': 'error',
+                'error': str(e),
+                'overall_status': 'health_check_failed'
+            }
+    
+    async def _perform_detailed_health_check(self, channel) -> Dict[str, Any]:
+        """Perform detailed health check for a specific channel"""
+        health_details = {
+            'config_valid': True,
+            'connectivity': 'unknown',
+            'last_error': None
+        }
+        
+        try:
+            # Basic connectivity check based on channel type
+            if channel.type.value == 'email':
+                # For email, we could check SMTP connectivity
+                config = channel.configuration
+                if 'smtp_host' in config and 'smtp_port' in config:
+                    health_details['connectivity'] = 'configured'
+                else:
+                    health_details['connectivity'] = 'misconfigured'
+                    
+            elif channel.type.value == 'slack':
+                # For Slack, check if webhook URL or bot token is present
+                config = channel.configuration
+                if 'webhook_url' in config or 'bot_token' in config:
+                    health_details['connectivity'] = 'configured'
+                else:
+                    health_details['connectivity'] = 'misconfigured'
+                    
+            elif channel.type.value == 'telegram':
+                # For Telegram, check bot token and chat ID
+                config = channel.configuration
+                if 'bot_token' in config and 'chat_id' in config:
+                    health_details['connectivity'] = 'configured'
+                else:
+                    health_details['connectivity'] = 'misconfigured'
+                    
+            elif channel.type.value == 'webhook':
+                # For webhook, check URL
+                config = channel.configuration
+                if 'url' in config:
+                    health_details['connectivity'] = 'configured'
+                else:
+                    health_details['connectivity'] = 'misconfigured'
+            
+            # Check success rate
+            if channel.success_rate < 50 and channel.total_sent > 10:
+                health_details['warning'] = 'Low success rate'
+            elif channel.success_rate >= 95:
+                health_details['status'] = 'excellent'
+            elif channel.success_rate >= 80:
+                health_details['status'] = 'good'
+            else:
+                health_details['status'] = 'needs_attention'
+                
+        except Exception as e:
+            health_details['last_error'] = str(e)
+            health_details['connectivity'] = 'error'
+            
+        return health_details
 
 
 # Create service instance

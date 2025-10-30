@@ -103,7 +103,7 @@ def reset_and_create_superuser():
         print("=" * 50)
         print("🔒 IMPORTANT: Save these credentials securely!")
         print("🌐 You can now login to the admin panel with these credentials")
-        print("🔗 Admin login URL: http://localhost:3000/admin-login")
+        print("🔗 Admin login URL: https://advacodex.com/admin-login")
         
         # Verify the user was created
         cursor.execute("SELECT id, email, username, is_admin FROM users WHERE email = ?", (SUPERUSER_EMAIL,))

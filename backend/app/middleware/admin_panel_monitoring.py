@@ -46,8 +46,7 @@ class AdminPanelMonitoringMiddleware(BaseHTTPMiddleware):
         endpoint = self._extract_endpoint(request.url.path)
         user_role = self._extract_user_role(request)
         
-        # Start Jaeger tracing
-        jaeger_tracing.trace_http_request(request, None, 0, user_role)
+        # Start Jaeger tracing is deferred until we have a real response
         
         try:
             # Process request
@@ -102,6 +101,14 @@ class AdminPanelMonitoringMiddleware(BaseHTTPMiddleware):
                 user_role=user_role
             )
             
+            # Update Jaeger trace for failed request with synthetic response
+            try:
+                from fastapi import Response as FastAPIResponse
+                synthetic_response = FastAPIResponse(status_code=500)
+                jaeger_tracing.trace_http_request(request, synthetic_response, duration, user_role)
+            except Exception:
+                pass
+
             # Log error
             logger.error(
                 f"Admin panel request failed: {str(e)}",

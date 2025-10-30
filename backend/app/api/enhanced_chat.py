@@ -104,20 +104,64 @@ async def chat_with_ai(
             
         else:
             # Используем только UnifiedLLMService без RAG
-            async for response_chunk in unified_llm_service.generate_response(
-                prompt=request.message,
-                context=request.context,
-                stream=False,  # Для API используем не-streaming режим
-                max_tokens=1024,
-                temperature=0.3,
-                top_p=0.8,
-                user_id=str(current_user.id)
-            ):
-                response_text = response_chunk  # В не-streaming режиме получаем полный ответ
-                break
-            
-            sources = None
-            quality_score = 0.8  # Базовая оценка качества для LLM без RAG
+            try:
+                # ДОБАВЛЕНО: Проверяем готовность модели перед генерацией
+                if not unified_llm_service.is_model_ready():
+                    model_status = await unified_llm_service.get_model_status()
+                    if not model_status.get("model_loaded"):
+                        raise HTTPException(
+                            status_code=503,
+                            detail="AI модель не загружена. Попробуйте позже."
+                        )
+                    elif model_status.get("active_requests", 0) >= model_status.get("max_concurrency", 1):
+                        raise HTTPException(
+                            status_code=503,
+                            detail="Система перегружена. Попробуйте через несколько секунд."
+                        )
+                
+                response_text = ""
+                async for response_chunk in unified_llm_service.generate_response(
+                    prompt=request.message,
+                    context=request.context,
+                    stream=False,  # Для API используем не-streaming режим
+                    max_tokens=1024,
+                    temperature=0.3,
+                    top_p=0.8,
+                    user_id=str(current_user.id)
+                ):
+                    response_text = response_chunk  # В не-streaming режиме получаем полный ответ
+                    break
+                
+                # ДОБАВЛЕНО: Проверяем, что получили валидный ответ
+                if not response_text or response_text.startswith("[ERROR]") or response_text.startswith("[TIMEOUT]"):
+                    if response_text.startswith("[TIMEOUT]"):
+                        raise HTTPException(
+                            status_code=408,
+                            detail="Время ожидания ответа истекло. Попробуйте сократить вопрос."
+                        )
+                    elif response_text.startswith("[ERROR]"):
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Ошибка генерации ответа. Попробуйте переформулировать вопрос."
+                        )
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Не удалось получить ответ от AI модели."
+                        )
+                
+                sources = None
+                quality_score = 0.8  # Базовая оценка качества для LLM без RAG
+                
+            except HTTPException:
+                # Пробрасываем HTTP исключения как есть
+                raise
+            except Exception as e:
+                logger.error(f"❌ Unexpected error in LLM generation for user {current_user.id}: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Произошла неожиданная ошибка при генерации ответа."
+                )
         
         processing_time = time.time() - start_time
         

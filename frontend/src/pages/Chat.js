@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Paperclip, Bot, User, Wifi, WifiOff, File, X, Lightbulb, Search, Mic, Square, Settings } from 'lucide-react';
+import { Send, Paperclip, Bot, User, Wifi, WifiOff, File, X, Lightbulb, Search, Mic, Square, Settings, RefreshCw } from 'lucide-react';
 import { useChatWebSocket } from '../hooks/useChatWebSocket';
+import { useStatusNotifications } from '../hooks/useStatusNotifications';
 import {
   LazyFileUpload,
   LazyQuestionTemplates,
@@ -12,6 +13,10 @@ import ChatHistory from '../components/ChatHistory';
 import EnhancedResponse from '../components/EnhancedResponse';
 import RAGSettings from '../components/RAGSettings';
 import FeedbackButtons from '../components/FeedbackButtons';
+import WebSocketStatus from '../components/WebSocketStatus';
+import ErrorMessage from '../components/ErrorMessage';
+import AIThinkingIndicator from '../components/AIThinkingIndicator';
+import StatusNotificationSystem from '../components/StatusNotificationSystem';
 import axios from 'axios';
 import { getApiUrl } from '../config/api';
 
@@ -19,6 +24,7 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStartTime, setGenerationStartTime] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [showFileUpload, setShowFileUpload] = useState(false);
@@ -27,27 +33,32 @@ const Chat = () => {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showRAGSettings, setShowRAGSettings] = useState(false);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+  const [lastError, setLastError] = useState(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const autoScrollRef = useRef(true);
   const currentStreamRef = useRef(null);
   const initializedRef = useRef(false);
 
+  // Хук для уведомлений
+  const { showGenerationStopped, showError } = useStatusNotifications();
+
+  const isNearBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return true;
+    const threshold = 120; // px
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceFromBottom <= threshold;
+  };
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   };
 
-  // Функция остановки генерации
-  const stopGeneration = () => {
-    if (currentStreamRef.current) {
-      currentStreamRef.current.abort();
-      currentStreamRef.current = null;
-    }
-
-    if (wsStopGeneration) {
-      wsStopGeneration();
-    }
-
-    setIsGenerating(false);
-  };
+  // Функция остановки генерации (определяется после инициализации WebSocket-хука ниже)
+  let stopGeneration; // будет переопределена после объявления wsStopGeneration
 
   // Обработчик новых сообщений от WebSocket
   const handleNewMessage = useCallback((messageData) => {
@@ -71,40 +82,84 @@ const Chat = () => {
   // WebSocket подключение
   const {
     isConnected,
-    sendMessage: wsSendMessage,
-    stopGeneration: wsStopGeneration
+    connectionState,
+    websocket,
+    sendChatMessage: wsSendChatMessage,
+    stopGeneration: wsStopGeneration,
+    forceReconnect
   } = useChatWebSocket(sessionId, handleNewMessage);
 
-  // Инициализация сессии
-  useEffect(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      setSessionId(newSessionId);
-      
-      // Добавляем приветственное сообщение
-      setMessages([{
-        id: 'welcome',
-        type: 'ai',
-        content: 'Добро пожаловать в ИИ-Юрист! Я готов помочь вам с правовыми вопросами. Задайте ваш вопрос или загрузите документ для анализа.',
-        timestamp: new Date().toISOString()
-      }]);
+  // Теперь можем безопасно объявить stopGeneration, ссылаясь на wsStopGeneration
+  stopGeneration = useCallback(() => {
+    if (currentStreamRef.current) {
+      currentStreamRef.current.abort();
+      currentStreamRef.current = null;
     }
+
+    if (wsStopGeneration) {
+      wsStopGeneration();
+    }
+
+    setIsGenerating(false);
+    setGenerationStartTime(null);
+    
+    // Показываем уведомление об остановке
+    showGenerationStopped();
+  }, [wsStopGeneration]);
+
+  // Инициализация сессии - ТОЛЬКО ОДИН РАЗ
+  useEffect(() => {
+    if (initializedRef.current) return;
+    
+    initializedRef.current = true;
+    
+    // Принудительная очистка кеша при загрузке
+    if ('serviceWorker' in navigator && 'caches' in window) {
+      caches.keys().then(cacheNames => {
+        cacheNames.forEach(cacheName => {
+          if (cacheName.includes('advakod')) {
+            console.log('Очищаем старый кеш:', cacheName);
+            caches.delete(cacheName);
+          }
+        });
+      }).catch(err => console.error('Ошибка очистки кеша:', err));
+    }
+    
+    // Добавляем приветственное сообщение ТОЛЬКО ОДИН РАЗ
+    setMessages([{
+      id: 'welcome',
+      type: 'ai',
+      content: 'Привет! Я ваш АдваКОД AI-помощник. Задавайте любые вопросы по российскому законодательству, и я помогу вам разобраться. Можете также загружать документы для анализа.',
+      timestamp: new Date().toISOString()
+    }]);
+    
+    // Session ID будет создан на сервере при первом сообщении
   }, []);
 
   // Автоскролл при новых сообщениях
   useEffect(() => {
-    scrollToBottom();
+    if (autoScrollRef.current) {
+      scrollToBottom();
+    }
   }, [messages]);
+
+  const handleContainerScroll = () => {
+    // Обновляем флаг автоскролла: включен только если пользователь близко к низу
+    autoScrollRef.current = isNearBottom();
+  };
 
   // Отправка сообщения
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isGenerating) return;
+    const messageText = inputMessage.trim();
+    if (!messageText || isGenerating) return;
+
+    // Сохраняем session_id обработанный заранее
+    const cleanSessionId = sessionId ? parseInt(sessionId.toString().replace(/[^0-9]/g, '')) : null;
 
     const userMessage = {
       id: `msg_${Date.now()}`,
       type: 'user',
-      content: inputMessage,
+      content: messageText,
       timestamp: new Date().toISOString(),
       files: attachedFiles
     };
@@ -113,39 +168,149 @@ const Chat = () => {
     setInputMessage('');
     setAttachedFiles([]);
     setIsGenerating(true);
+    setGenerationStartTime(Date.now());
+    setLastError(null);
 
     try {
-      // Отправляем через WebSocket если подключен, иначе через HTTP
-      if (isConnected) {
-        wsSendMessage(inputMessage, sessionId, attachedFiles);
-      } else {
-        // HTTP fallback
-        const response = await axios.post(`${getApiUrl()}/chat/send`, {
-          message: inputMessage,
-          session_id: sessionId,
-          files: attachedFiles
-        });
+      // ВСЕГДА отправляем через HTTP API, WebSocket используется только для получения ответов
+      const requestPayload = {
+        message: messageText,
+        session_id: cleanSessionId
+      };
+      
+      console.log('Отправка сообщения:', { 
+        message: messageText.substring(0, 50), 
+        sessionId: cleanSessionId,
+        url: getApiUrl('/chat/message')
+      });
+      
+      // Попытка стриминга через SSE (Server-Sent Events)
+      const streamUrl = getApiUrl('/chat/message/stream');
+      const controller = new AbortController();
+      currentStreamRef.current = controller;
 
-        const aiMessage = {
-          id: `ai_${Date.now()}`,
-          type: 'ai',
-          content: response.data.response,
-          timestamp: new Date().toISOString()
-        };
+      const authToken = localStorage.getItem('token');
+      const resp = await fetch(streamUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Authorization': authToken ? `Bearer ${authToken}` : ''
+        },
+        cache: 'no-store',
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal
+      });
 
-        setMessages(prev => [...prev, aiMessage]);
-        setIsGenerating(false);
+      if (!resp.ok || !resp.body) {
+        const errText = await resp.text().catch(() => '');
+        throw new Error(`Streaming request failed: ${resp.status} ${errText}`);
       }
+
+      // Создаем пустое AI-сообщение и постепенно наполняем
+      const aiMsgId = `ai_${Date.now()}`;
+      setMessages(prev => [...prev, { id: aiMsgId, type: 'ai', content: '', timestamp: new Date().toISOString() }]);
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      const applyChunk = (text) => {
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: (m.content || '') + text } : m));
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split(/\n\n/);
+        buffer = lines.pop() || '';
+        for (const block of lines) {
+          // Ожидаем формат SSE: строки вида "data: {json}"
+          const dataLine = block.split('\n').find(l => l.startsWith('data:'));
+          if (!dataLine) continue;
+          const payload = dataLine.replace(/^data:\s?/, '');
+          try {
+            const evt = JSON.parse(payload);
+            if (evt.type === 'chunk' && typeof evt.content === 'string') {
+              applyChunk(evt.content);
+            } else if (evt.type === 'end') {
+              // завершение
+            } else if (evt.type === 'error') {
+              throw new Error(evt.content || 'stream error');
+            }
+          } catch (_) {
+            // На всякий случай добавляем как текст
+            applyChunk(payload);
+          }
+        }
+      }
+
+      setIsGenerating(false);
+      setGenerationStartTime(null);
     } catch (error) {
       console.error('Ошибка отправки сообщения:', error);
+      
+      // Если остановили вручную — не показываем ошибку, просто фиксируем остановку
+      const isAborted = (currentStreamRef.current && currentStreamRef.current.signal?.aborted) 
+        || error?.name === 'AbortError' 
+        || String(error?.message || error).toLowerCase().includes('aborted');
+      
+      setIsGenerating(false);
+      setGenerationStartTime(null);
+      
+      if (isAborted) {
+        showGenerationStopped();
+        return; // тихо выходим без отображения ошибки в чате
+      }
+      
+      setLastError(error);
+      
+      // Показываем пользователю информативное сообщение об ошибке
+      showError(error, {
+        autoHide: false,
+        actions: [
+          {
+            label: 'Повторить',
+            action: () => sendMessage(),
+            primary: true
+          }
+        ]
+      });
+      
+      // Также добавляем сообщение об ошибке в чат для контекста
+      let errorText = 'Произошла ошибка при отправке сообщения.';
+      
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 408) {
+          errorText = 'Превышено время ожидания ответа. Попробуйте упростить вопрос.';
+        } else if (status === 503) {
+          errorText = 'Сервер временно перегружен. Подождите немного и попробуйте снова.';
+        } else if (status === 401) {
+          errorText = 'Ошибка авторизации. Пожалуйста, войдите снова.';
+        } else if (status === 429) {
+          errorText = 'Слишком много запросов. Подождите немного перед следующим запросом.';
+        } else if (status >= 500) {
+          errorText = 'Ошибка сервера. Мы уже работаем над её устранением.';
+        } else if (data?.detail || data?.message) {
+          errorText = data.detail || data.message;
+        }
+      } else if (error.request) {
+        errorText = 'Не удалось соединиться с сервером. Проверьте подключение к интернету.';
+      }
+      
       const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'error',
-        content: 'Произошла ошибка при отправке сообщения. Попробуйте еще раз.',
-        timestamp: new Date().toISOString()
+        content: errorText,
+        timestamp: new Date().toISOString(),
+        error: error
       };
       setMessages(prev => [...prev, errorMessage]);
-      setIsGenerating(false);
     }
   };
 
@@ -177,18 +342,25 @@ const Chat = () => {
                 <Bot className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">ИИ-Юрист</h1>
-                <div className="flex items-center space-x-2">
-                  {isConnected ? (
-                    <div className="flex items-center text-green-600">
-                      <Wifi className="w-4 h-4" />
-                      <span className="text-sm">Подключено</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-red-600">
-                      <WifiOff className="w-4 h-4" />
-                      <span className="text-sm">Отключено</span>
-                    </div>
+                <h1 className="text-xl font-semibold text-gray-900">Чат с АДВАКОД</h1>
+                <p className="text-sm text-gray-600 mt-1">Ваш персональный AI юрист-консультант</p>
+                <div className="flex items-center space-x-4 mt-2">
+                  <WebSocketStatus 
+                    websocket={websocket}
+                    onReconnect={forceReconnect}
+                    className="flex-1"
+                  />
+                  
+                  {/* Кнопка переподключения для критических ситуаций */}
+                  {(!isConnected && connectionState === 'failed') && (
+                    <button
+                      onClick={forceReconnect}
+                      className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      title="Переподключиться к серверу"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Переподключить</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -207,7 +379,11 @@ const Chat = () => {
         </div>
 
         {/* Область сообщений */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div
+          className="flex-1 overflow-y-auto p-6 space-y-4"
+          ref={messagesContainerRef}
+          onScroll={handleContainerScroll}
+        >
           {messages.map((message) => (
             <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-3xl ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
@@ -222,17 +398,39 @@ const Chat = () => {
                     )}
                   </div>
                   
-                  <div className={`px-4 py-3 rounded-lg ${
+                  <div className={`${
                     message.type === 'user' 
-                      ? 'bg-blue-600 text-white' 
+                      ? 'px-4 py-3 rounded-lg bg-blue-600 text-white' 
                       : message.type === 'error'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-white text-gray-900 border border-gray-200'
+                      ? ''
+                      : 'px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-200'
                   }`}>
-                    <EnhancedResponse message={message} />
-                    <div className="text-xs opacity-70 mt-2">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </div>
+                    {message.type === 'error' ? (
+                      <ErrorMessage
+                        error={message.error || message.content}
+                        onRetry={() => {
+                          // Повторить последнее сообщение
+                          const lastUserMessage = messages.slice().reverse().find(m => m.type === 'user');
+                          if (lastUserMessage) {
+                            setInputMessage(lastUserMessage.content);
+                          }
+                        }}
+                        onReconnect={forceReconnect}
+                        variant="default"
+                      />
+                    ) : (
+                      <>
+                        <EnhancedResponse message={message} />
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="text-xs opacity-70">
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </div>
+                          {message.type === 'ai' && message.id === 'welcome' && (
+                            <FeedbackButtons messageId={message.id} />
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -241,16 +439,19 @@ const Chat = () => {
           
           {isGenerating && (
             <div className="flex justify-start">
-              <div className="max-w-3xl">
+              <div className="max-w-3xl w-full">
                 <div className="flex items-start space-x-3">
                   <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
-                  <div className="px-4 py-3 rounded-lg bg-white border border-gray-200">
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      <span className="text-gray-600">ИИ думает...</span>
-                    </div>
+                  <div className="flex-1">
+                    <AIThinkingIndicator
+                      isGenerating={isGenerating}
+                      startTime={generationStartTime}
+                      onStop={stopGeneration}
+                      variant="default"
+                      estimatedTime={120} // 2 минуты примерное время
+                    />
                   </div>
                 </div>
               </div>
@@ -360,6 +561,16 @@ const Chat = () => {
           onClose={() => setShowRAGSettings(false)}
         />
       )}
+
+      {/* Система уведомлений о статусе */}
+      <StatusNotificationSystem
+        websocket={websocket}
+        isGenerating={isGenerating}
+        generationStartTime={generationStartTime}
+        onStopGeneration={stopGeneration}
+        onReconnect={forceReconnect}
+        onForceReconnect={forceReconnect}
+      />
     </div>
   );
 };

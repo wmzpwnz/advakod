@@ -112,10 +112,14 @@ class DatabaseMonitoringService:
                     
                     for table in tables:
                         table_name = table[0]
-                        # Безопасный запрос с параметризацией
-                        count_query = text("SELECT COUNT(*) FROM :table_name")
-                        count = db.execute(count_query, {"table_name": table_name}).scalar()
-                        stats[table_name] = {"row_count": count}
+                        try:
+                            # Безопасный запрос для SQLite
+                            count_query = text(f"SELECT COUNT(*) FROM `{table_name}`")
+                            count = db.execute(count_query).scalar()
+                            stats[table_name] = {"row_count": count}
+                        except Exception as table_error:
+                            logger.warning(f"⚠️ Error getting count for table {table_name}: {table_error}")
+                            stats[table_name] = {"row_count": 0, "error": str(table_error)}
                         
                 else:
                     # PostgreSQL статистика
@@ -145,7 +149,7 @@ class DatabaseMonitoringService:
             
         except Exception as e:
             logger.warning(f"⚠️ Не удалось получить статистику таблиц: {e}")
-            return {"error": str(e)}
+            return {"error": str(e), "connection_issue": "postgres" in str(e).lower()}
     
     def _get_performance_metrics(self) -> Dict[str, Any]:
         """Метрики производительности"""
@@ -183,8 +187,12 @@ class DatabaseMonitoringService:
                 
                 for table in tables_to_check:
                     try:
-                        # Безопасный запрос с параметризацией
-                        count = db.execute(text("SELECT COUNT(*) FROM :table"), {"table": table}).scalar()
+                        if settings.DATABASE_URL.startswith("sqlite"):
+                            # SQLite безопасный запрос
+                            count = db.execute(text(f"SELECT COUNT(*) FROM `{table}`")).scalar()
+                        else:
+                            # PostgreSQL безопасный запрос
+                            count = db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
                         table_status[table] = {"status": "ok", "count": count}
                     except Exception as e:
                         table_status[table] = {"status": "error", "error": str(e)}
@@ -201,10 +209,20 @@ class DatabaseMonitoringService:
             
         except Exception as e:
             logger.error(f"❌ Проверка здоровья БД не удалась: {e}")
+            
+            # Определяем тип ошибки для более информативного ответа
+            error_type = "connection_error"
+            if "postgres" in str(e).lower() and "name resolution" in str(e).lower():
+                error_type = "postgres_connection_error"
+            elif "sqlite" in str(e).lower():
+                error_type = "sqlite_error"
+            
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat()
+                "error_type": error_type,
+                "timestamp": datetime.now().isoformat(),
+                "database_type": "sqlite" if settings.DATABASE_URL.startswith("sqlite") else "postgresql"
             }
     
     def get_metrics_summary(self, hours: int = 24) -> Dict[str, Any]:

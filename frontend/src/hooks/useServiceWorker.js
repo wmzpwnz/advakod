@@ -7,44 +7,17 @@ export const useServiceWorker = () => {
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState('default');
 
-  // Регистрация Service Worker (только в production). В dev — гарантированно удаляем SW
+  // Временно отключаем Service Worker, чтобы исключить конфликты кэша в проде
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
       return;
     }
 
-    if (process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration);
-          setSwRegistration(registration);
-
-          // Проверяем обновления
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (
-                  newWorker.state === 'installed' &&
-                  navigator.serviceWorker.controller
-                ) {
-                  setIsUpdateAvailable(true);
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    } else {
-      // Development: удаляем все существующие SW, чтобы избежать конфликтов с HMR
-      navigator.serviceWorker
-        .getRegistrations()
-        .then((regs) => Promise.all(regs.map((r) => r.unregister())))
-        .catch(() => {});
-    }
+    // Всегда удаляем существующие SW и не регистрируем новый
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .catch(() => {});
   }, []);
 
   // Отслеживание статуса подключения

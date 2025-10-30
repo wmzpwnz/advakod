@@ -1,0 +1,137 @@
+{
+  "deployment_status": "degraded",
+  "services": {
+    "total": 8,
+    "healthy": 4,
+    "unhealthy": 3,
+    "missing": 0,
+    "details": [
+      {
+        "name": "nginx",
+        "status": "healthy",
+        "container_id": "39131bd8cea2",
+        "image": "nginx:alpine",
+        "uptime": "45 minutes ago",
+        "message": "Running and healthy",
+        "health_check": "healthy"
+      },
+      {
+        "name": "postgres",
+        "status": "healthy",
+        "container_id": "0cf064c48357",
+        "image": "postgres:15-alpine",
+        "uptime": "45 minutes ago",
+        "message": "Running and healthy",
+        "health_check": "healthy"
+      },
+      {
+        "name": "qdrant",
+        "status": "unhealthy",
+        "container_id": "5b282c7c8ca3",
+        "image": "qdrant/qdrant:v1.7.0",
+        "uptime": "45 minutes ago",
+        "message": "Running but unhealthy",
+        "health_check": "unhealthy"
+      },
+      {
+        "name": "redis",
+        "status": "healthy",
+        "container_id": "5708f8be1f33",
+        "image": "redis:alpine",
+        "uptime": "45 minutes ago",
+        "message": "Running and healthy",
+        "health_check": "healthy"
+      },
+      {
+        "name": "backend",
+        "status": "healthy",
+        "container_id": "667dbdc4d75d",
+        "image": "advakod-backend",
+        "uptime": "45 minutes ago",
+        "message": "Running and healthy",
+        "health_check": "healthy"
+      },
+      {
+        "name": "celery_worker",
+        "status": "unhealthy",
+        "container_id": "0e8abaf3677b",
+        "image": "advakod-celery_worker",
+        "uptime": "15 hours ago",
+        "message": "Running but unhealthy",
+        "health_check": "unhealthy"
+      },
+      {
+        "name": "celery_beat",
+        "status": "starting",
+        "container_id": "f09c20fa471b",
+        "image": "advakod-celery_beat",
+        "uptime": "15 hours ago",
+        "message": "Restarting",
+        "health_check": ""
+      },
+      {
+        "name": "frontend",
+        "status": "unhealthy",
+        "container_id": "957ca63de342",
+        "image": "advakod-frontend",
+        "uptime": "15 hours ago",
+        "message": "Running but ",
+        "health_check": ""
+      }
+    ]
+  },
+  "logs": {
+    "backend": {
+      "success": true,
+      "total_lines": 50,
+      "error_count": 0,
+      "recent_errors": [],
+      "has_errors": false
+    },
+    "nginx": {
+      "success": true,
+      "total_lines": 50,
+      "error_count": 4,
+      "recent_errors": [
+        "advakod_nginx  | 2025/10/30 12:55:46 [error] 31#31: *274 open() \"/etc/nginx/html/sw.js\" failed (2: No such file or directory), client: 193.233.106.104, server: advacodex.com, request: \"GET /sw.js HTTP/2.0\", host: \"advacodex.com\", referrer: \"https://advacodex.com/sw.js\"",
+        "advakod_nginx  | 2025/10/30 12:55:46 [error] 31#31: *274 open() \"/usr/share/nginx/html/404.html\" failed (2: No such file or directory), client: 193.233.106.104, server: advacodex.com, request: \"GET /sw.js HTTP/2.0\", host: \"advacodex.com\", referrer: \"https://advacodex.com/sw.js\"",
+        "advakod_nginx  | 2025/10/30 13:01:35 [error] 31#31: *354 open() \"/etc/nginx/html/favicon.ico\" failed (2: No such file or directory), client: 213.87.128.66, server: advacodex.com, request: \"GET /favicon.ico HTTP/2.0\", host: \"advacodex.com\"",
+        "advakod_nginx  | 2025/10/30 13:01:35 [error] 31#31: *354 open() \"/usr/share/nginx/html/404.html\" failed (2: No such file or directory), client: 213.87.128.66, server: advacodex.com, request: \"GET /favicon.ico HTTP/2.0\", host: \"advacodex.com\""
+      ],
+      "has_errors": true
+    },
+    "postgres": {
+      "success": true,
+      "total_lines": 21,
+      "error_count": 0,
+      "recent_errors": [],
+      "has_errors": false
+    }
+  },
+  "resources": {
+    "success": true,
+    "containers": {}
+  },
+  "network": {
+    "tests": [
+      {
+        "test": "backend-to-postgres",
+        "success": false,
+        "message": "Failed: OCI runtime exec failed: exec failed: unable to start container process: exec: \"nc\": executable file not found in $PATH: unknown"
+      },
+      {
+        "test": "backend-to-redis",
+        "success": false,
+        "message": "Failed: OCI runtime exec failed: exec failed: unable to start container process: exec: \"nc\": executable file not found in $PATH: unknown"
+      },
+      {
+        "test": "backend-to-qdrant",
+        "success": false,
+        "message": "Failed: OCI runtime exec failed: exec failed: unable to start container process: exec: \"nc\": executable file not found in $PATH: unknown"
+      }
+    ],
+    "all_passed": false
+  },
+  "validation_duration": 3.4136435985565186,
+  "timestamp": 1761829653.1147566
+}

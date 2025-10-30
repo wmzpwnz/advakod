@@ -1,3 +1,52 @@
+# Dependencies and builds
+node_modules/
+.venv/
+__pycache__/
+dist/
+build/
+
+# Environments
+.env
+.env.*
+!.env.example
+
+# Logs and tmp
+logs/
+*.log
+temp/
+tmp/
+.cache/
+npm-cache/
+pip-cache/
+
+# App data
+uploads/
+media/
+artifacts/
+backups/
+backups/**/*
+*.sqlite
+
+# Docker/local volumes
+docker-data/
+volumes/
+
+# OS/editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Archives and exports
+*.tar.gz
+*.zip
+*.7z
+
+# Models and large binaries
+models/
+*.bin
+*.safetensors
+*.onnx
 # Python
 __pycache__/
 *.py[cod]

@@ -113,10 +113,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Theme Toggle - Fixed position */}
-      <div className="fixed top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
+      {/* Theme toggle уже есть в шапке. Убираем дубликат на главной, чтобы не перекрывался UI на мобильных. */}
 
       {/* Skip to main content link for screen readers */}
       <a 

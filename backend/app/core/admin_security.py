@@ -43,6 +43,9 @@ class AdminSecurityService:
                     # Проверяем, что это валидный IP
                     if ip_str == "localhost":
                         whitelist.extend(["127.0.0.1", "::1"])
+                    elif ip_str in ["nginx", "advakod_nginx"]:
+                        # Allow nginx containers
+                        continue
                     else:
                         ipaddress.ip_address(ip_str)
                         whitelist.append(ip_str)
@@ -190,11 +193,11 @@ def get_secure_admin(
     # 4. Логируем админский доступ
     audit_log = AuditLog(
         user_id=current_user.id,
-        action=ActionType.ADMIN_ACCESS,
+        action=ActionType.ADMIN_ACTION,
         resource="admin_panel",
         description=f"Доступ к админ панели",
         severity=SeverityLevel.MEDIUM,
-        ip_address=admin_security._get_client_ip(request),
+        ip_address=admin_security.get_client_ip(request),
         user_agent=request.headers.get("User-Agent", ""),
         status="success"
     )

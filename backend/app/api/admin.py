@@ -34,6 +34,7 @@ from ..services.audit_service import get_audit_service
 from ..services.ai_document_validator import ai_document_validator
 from ..services.document_versioning import document_versioning_service
 from ..core.admin_security import get_secure_admin, require_admin_action_validation
+from ..core.cache import cache_service
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +186,6 @@ async def delete_user(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/users/{user_id}/toggle-admin")
-@require_admin_action_validation("toggle_admin_status", "user")
 async def toggle_admin_status(
     user_id: int,
     request: Request,
@@ -1199,4 +1199,164 @@ async def reprocess_documents(
         
     except Exception as e:
         logger.error(f"Ошибка переобработки документов: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== УПРАВЛЕНИЕ КЭШЕМ ====================
+
+@router.get("/cache/status")
+async def get_cache_status(
+    current_admin: User = Depends(get_current_admin)
+):
+    """Получение статуса кэша"""
+    try:
+        health_status = await cache_service.health_check()
+        stats = await cache_service.get_stats()
+        
+        return {
+            "status": "success",
+            "cache_health": health_status,
+            "cache_stats": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cache/reconnect")
+async def reconnect_cache(
+    current_admin: User = Depends(get_current_admin)
+):
+    """Принудительное переподключение к Redis"""
+    try:
+        success = await cache_service.reconnect()
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Redis reconnection successful",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "warning",
+                "message": "Redis reconnection failed, using in-memory cache",
+                "timestamp": datetime.now().isoformat()
+            }
+    except Exception as e:
+        logger.error(f"Error reconnecting cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cache/clear")
+@require_admin_action_validation("clear_cache", "system")
+async def clear_cache(
+    pattern: Optional[str] = Query(None, description="Паттерн для очистки (например: user_profile:*)"),
+    current_admin: User = Depends(get_current_admin),
+    request: Request = None
+):
+    """Очистка кэша по паттерну или полная очистка"""
+    try:
+        if pattern:
+            cleared_count = await cache_service.clear_pattern(pattern)
+            message = f"Cleared {cleared_count} keys matching pattern '{pattern}'"
+        else:
+            # Полная очистка кэша
+            await cache_service.in_memory_cache.clear()
+            if cache_service.redis_client and cache_service._initialized:
+                await cache_service.redis_client.flushdb()
+            message = "All cache cleared"
+        
+        # Логируем действие
+        audit_service = get_audit_service()
+        audit_service.log_action(
+            user_id=current_admin.id,
+            action=ActionType.SYSTEM_MAINTENANCE,
+            resource="cache",
+            resource_id=None,
+            description=f"Cache cleared by admin: {message}",
+            severity=SeverityLevel.MEDIUM
+        )
+        
+        return {
+            "status": "success",
+            "message": message,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/cache/keys")
+async def get_cache_keys(
+    pattern: str = Query("*", description="Паттерн для поиска ключей"),
+    limit: int = Query(100, ge=1, le=1000, description="Максимальное количество ключей"),
+    current_admin: User = Depends(get_current_admin)
+):
+    """Получение списка ключей кэша"""
+    try:
+        keys = []
+        
+        if cache_service.redis_client and cache_service._initialized:
+            try:
+                redis_keys = await cache_service.redis_client.keys(pattern)
+                keys.extend(redis_keys[:limit])
+            except Exception as e:
+                logger.warning(f"Error getting Redis keys: {e}")
+        
+        # Добавляем ключи из in-memory кэша
+        in_memory_keys = list(cache_service.in_memory_cache._cache.keys())
+        if pattern != "*":
+            # Простая фильтрация по паттерну для in-memory кэша
+            import fnmatch
+            in_memory_keys = [k for k in in_memory_keys if fnmatch.fnmatch(k, pattern)]
+        
+        keys.extend(in_memory_keys[:limit - len(keys)])
+        
+        return {
+            "status": "success",
+            "keys": keys[:limit],
+            "total_found": len(keys),
+            "pattern": pattern,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache keys: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/cache/key/{key}")
+async def get_cache_value(
+    key: str,
+    current_admin: User = Depends(get_current_admin)
+):
+    """Получение значения по ключу из кэша"""
+    try:
+        value = await cache_service.get(key)
+        
+        return {
+            "status": "success",
+            "key": key,
+            "value": value,
+            "exists": value is not None,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache value for key '{key}': {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/cache/key/{key}")
+async def delete_cache_key(
+    key: str,
+    current_admin: User = Depends(get_current_admin)
+):
+    """Удаление ключа из кэша"""
+    try:
+        success = await cache_service.delete(key)
+        
+        return {
+            "status": "success",
+            "key": key,
+            "deleted": success,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error deleting cache key '{key}': {e}")
         raise HTTPException(status_code=500, detail=str(e))

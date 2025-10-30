@@ -121,7 +121,7 @@ def send_password_reset_email(user_email: str, reset_token: str) -> Dict[str, An
     try:
         logger.info(f"Sending password reset email to {user_email}")
         
-        reset_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={reset_token}"
+        reset_url = f"{os.getenv('FRONTEND_URL', 'https://advacodex.com')}/reset-password?token={reset_token}"
         
         subject = "Сброс пароля - ИИ-Юрист"
         

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, 
   Search, 
@@ -14,11 +14,14 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const UserManagement = () => {
+  const { token } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [roles, setRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     is_active: null,
@@ -34,8 +37,37 @@ const UserManagement = () => {
   const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
+    // сперва загрузим роли (для быстрых действий), затем пользователей
+    const init = async () => {
+      await loadRoles();
+      await loadUsers();
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // реагируем на фильтры/поиск/страницу
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, filters, pagination.skip]);
+
+  const rolesByName = useMemo(() => {
+    const map = {};
+    roles.forEach(r => { if (r?.name) map[r.name] = r; });
+    return map;
+  }, [roles]);
+
+  const loadRoles = async () => {
+    try {
+      const response = await axios.get(getApiUrl('/admin/roles/'), {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
+      });
+      setRoles(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      setRoles([]);
+    }
+  };
 
   const loadUsers = async () => {
     setLoading(true);
@@ -43,7 +75,8 @@ const UserManagement = () => {
     try {
       const params = new URLSearchParams({
         skip: pagination.skip.toString(),
-        limit: pagination.limit.toString()
+        limit: pagination.limit.toString(),
+        _ts: Date.now().toString()
       });
 
       if (searchTerm) params.append('search', searchTerm);
@@ -51,12 +84,19 @@ const UserManagement = () => {
       if (filters.is_premium !== null) params.append('is_premium', filters.is_premium.toString());
       if (filters.is_admin !== null) params.append('is_admin', filters.is_admin.toString());
 
-      const response = await axios.get(`${getApiUrl('/admin/users')}?${params}`);
-      // Исправляем: API возвращает объект с полем users, а не массив напрямую
-      const usersData = response.data.users || response.data || [];
-      setUsers(Array.isArray(usersData) ? usersData : []);
+      const response = await axios.get(`${getApiUrl('/admin/users')}?${params}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
+      });
+      // Бэкенд возвращает массив пользователей
+      const usersData = Array.isArray(response.data) ? response.data : (response.data?.users || []);
+      const list = Array.isArray(usersData) ? usersData : [];
+      setUsers(list);
+      // Обновляем общее количество для пагинации (пока нет отдельного total из API)
+      setPagination(prev => ({ ...prev, total: Math.max(prev.total, pagination.skip + list.length) }));
     } catch (err) {
-      setError('Ошибка загрузки пользователей');
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || err.message;
+      setError(status ? `Ошибка загрузки пользователей (${status}): ${detail}` : 'Ошибка загрузки пользователей');
       console.error('Users error:', err);
       // Устанавливаем пустой массив в случае ошибки
       setUsers([]);
@@ -129,6 +169,70 @@ const UserManagement = () => {
         ? Math.min(prev.skip + prev.limit, prev.total - prev.limit)
         : Math.max(prev.skip - prev.limit, 0)
     }));
+  };
+
+  const toggleAdmin = async (userId) => {
+    try {
+      setLoading(true);
+      const resp = await axios.post(getApiUrl(`/admin/users/${userId}/toggle-admin`), {}, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
+      });
+      // Успех — перезагружаем список и показываем уведомление
+      await loadUsers();
+      try { console.info('Admin status toggled for', userId, resp?.data); } catch (_) {}
+    } catch (err) {
+      const data = err.response?.data;
+      const status = err.response?.status;
+      let msg = typeof data?.detail === 'string' ? data.detail : '';
+      if (!msg && data) {
+        try { msg = JSON.stringify(data); } catch (_) {}
+      }
+      if (!msg) msg = err.message;
+      if (status === 401) msg = 'Сессия истекла. Войдите в админку заново.';
+      if (status === 403) msg = 'Недостаточно прав для операции.';
+      if (status === 422) msg = 'Запрос отклонён валидатором. Обновите страницу и повторите.';
+      setError(`Не удалось изменить статус администратора: ${msg}`);
+      try { console.error('toggleAdmin error', status, data || err); } catch (_) {}
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const grantModerator = async (userId) => {
+    const role = rolesByName['moderator'];
+    if (!role?.id) {
+      setError('Роль moderator не найдена. Создайте её в разделе Роли.');
+      return;
+    }
+    try {
+      await axios.post(getApiUrl(`/admin/roles/users/${userId}/roles/`), {
+        role_id: role.id,
+        reason: 'Назначение модератора'
+      }, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
+      });
+      await loadUsers();
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message;
+      setError(`Не удалось назначить модератора: ${msg}`);
+    }
+  };
+
+  const revokeModerator = async (userId) => {
+    const role = rolesByName['moderator'];
+    if (!role?.id) {
+      setError('Роль moderator не найдена.');
+      return;
+    }
+    try {
+      await axios.delete(getApiUrl(`/admin/roles/users/${userId}/roles/${role.id}`), {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
+      });
+      await loadUsers();
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message;
+      setError(`Не удалось отозвать роль модератора: ${msg}`);
+    }
   };
 
 
@@ -305,6 +409,31 @@ const UserManagement = () => {
                           >
                             {user.is_active ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
                           </button>
+                          <button
+                            onClick={() => toggleAdmin(user.id)}
+                            className="p-2 text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900 rounded-lg transition-colors"
+                            title={user.is_admin ? 'Снять администратора' : 'Сделать администратором'}
+                          >
+                            {user.is_admin ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+                          </button>
+                          {rolesByName['moderator'] && (
+                            <>
+                              <button
+                                onClick={() => grantModerator(user.id)}
+                                className="p-2 text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors"
+                                title="Назначить модератора"
+                              >
+                                <Shield className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => revokeModerator(user.id)}
+                                className="p-2 text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors"
+                                title="Отозвать модератора"
+                              >
+                                <ShieldOff className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
                           <button
                             onClick={() => setSelectedUser(user)}
                             className="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"

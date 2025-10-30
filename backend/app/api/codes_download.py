@@ -112,3 +112,4 @@ async def get_integration_history(days: int = 7):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+

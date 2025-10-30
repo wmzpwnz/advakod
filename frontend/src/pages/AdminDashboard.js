@@ -37,6 +37,12 @@ const AdminDashboard = () => {
 
       // Загружаем статистику
       const statsResponse = await fetch('/api/v1/admin/dashboard', { headers });
+      if (statsResponse.status === 401 || statsResponse.status === 403) {
+        setError('Сессия администратора истекла или нет прав. Войдите заново через Админ.');
+        setStats(null);
+        setUsers([]);
+        return;
+      }
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setStats(statsData);
@@ -50,10 +56,10 @@ const AdminDashboard = () => {
       }
 
       // Загружаем пользователей
-      const usersResponse = await fetch('/api/v1/admin/users?limit=10', { headers });
+      const usersResponse = await fetch('/api/v1/admin/users?limit=10&_ts=' + Date.now(), { headers });
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
-        setUsers(usersData.users);
+        setUsers(Array.isArray(usersData?.users) ? usersData.users : (Array.isArray(usersData) ? usersData : []));
       }
 
       // Загружаем логи аудита

@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     VISTRAL_N_GPU_LAYERS: int = int(os.getenv("VISTRAL_N_GPU_LAYERS", "0"))
     VISTRAL_INFERENCE_TIMEOUT: int = int(os.getenv("VISTRAL_INFERENCE_TIMEOUT", "1800"))  # 30 минут для 24B модели
     VISTRAL_MAX_CONCURRENCY: int = int(os.getenv("VISTRAL_MAX_CONCURRENCY", "5"))  # Больше запросов для мощного железа
+    # Доп. параметр очереди запросов для UnifiedLLMService
+    VISTRAL_QUEUE_SIZE: int = int(os.getenv("VISTRAL_QUEUE_SIZE", "50"))
     VISTRAL_TOKEN_MARGIN: int = int(os.getenv("VISTRAL_TOKEN_MARGIN", "512"))  # Больше токенов для мощного железа
     VISTRAL_REPEAT_PENALTY: float = float(os.getenv("VISTRAL_REPEAT_PENALTY", "1.1"))
     VISTRAL_STOP_TOKENS: Optional[str] = os.getenv("VISTRAL_STOP_TOKENS", None)
@@ -59,6 +61,14 @@ class Settings(BaseSettings):
     VISTRAL_TOP_P: float = float(os.getenv("VISTRAL_TOP_P", "0.9"))  # Top-p sampling
     VISTRAL_TOP_K: int = int(os.getenv("VISTRAL_TOP_K", "40"))  # Top-k sampling
     VISTRAL_MEMORY_FRACTION: float = float(os.getenv("VISTRAL_MEMORY_FRACTION", "0.8"))  # Доля памяти для модели
+    
+    # WebSocket настройки (для стабильности real-time соединений)
+    WEBSOCKET_MAX_CONNECTIONS_PER_IP: int = int(os.getenv("WEBSOCKET_MAX_CONNECTIONS_PER_IP", "5"))
+    WEBSOCKET_RATE_LIMIT_WINDOW: int = int(os.getenv("WEBSOCKET_RATE_LIMIT_WINDOW", "60"))  # сек
+    WEBSOCKET_CONNECTION_TIMEOUT: int = int(os.getenv("WEBSOCKET_CONNECTION_TIMEOUT", "10"))  # сек
+    WEBSOCKET_MAX_MESSAGE_SIZE: int = int(os.getenv("WEBSOCKET_MAX_MESSAGE_SIZE", "1048576"))  # 1MB
+    WEBSOCKET_PING_INTERVAL: int = int(os.getenv("WEBSOCKET_PING_INTERVAL", "10"))  # сек
+    WEBSOCKET_PONG_TIMEOUT: int = int(os.getenv("WEBSOCKET_PONG_TIMEOUT", "10"))  # сек
     
     # Настройки унифицированных AI-сервисов
     RAG_MAX_RESULTS: int = int(os.getenv("RAG_MAX_RESULTS", "20"))
@@ -99,6 +109,7 @@ class Settings(BaseSettings):
     
     # CORS настройки - безопасная конфигурация
     CORS_ORIGINS: Optional[str] = None
+    BACKEND_CORS_ORIGINS: Optional[str] = None  # Для совместимости с docker-compose
     
     def get_cors_origins(self) -> list:
         """Получаем CORS origins в зависимости от окружения"""
@@ -111,8 +122,9 @@ class Settings(BaseSettings):
                 "http://127.0.0.1:3001",
             ]
         else:
-            # В продакшене используем только HTTPS домены
-            production_origins = os.getenv("CORS_ORIGINS", "https://advacodex.com,https://www.advacodex.com").split(",")
+            # В продакшене используем BACKEND_CORS_ORIGINS или CORS_ORIGINS
+            cors_env = self.BACKEND_CORS_ORIGINS or self.CORS_ORIGINS or "https://advacodex.com,https://www.advacodex.com"
+            production_origins = cors_env.split(",")
             return [origin.strip() for origin in production_origins if origin.strip()]
     
     # Настройки для разработки

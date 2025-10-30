@@ -593,17 +593,31 @@ class ExternalNotificationService:
         recipient: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Send notification via external channel"""
+        """Send notification via external channel with enhanced error handling"""
+        
+        start_time = datetime.utcnow()
         
         try:
+            # Validate inputs
+            if not channel:
+                raise ValueError("Channel is required")
+            if not title or not content:
+                raise ValueError("Title and content are required")
+            
+            logger.info(f"Sending notification via {channel.type.value} channel: {channel.name}")
+            
+            result = None
+            
             if channel.type == ChannelType.EMAIL:
                 if not recipient:
-                    raise ValueError("Email recipient is required")
+                    # Try to get default recipient from channel config
+                    recipient = channel.configuration.get('default_recipient', 'admin@advacodex.com')
+                    logger.info(f"Using default email recipient: {recipient}")
                 
                 # Render HTML content if needed
                 html_content = self._render_html_email(title, content, priority, category, action_url)
                 
-                return await self.email_service.send_email(
+                result = await self.email_service.send_email(
                     channel=channel,
                     recipient_email=recipient,
                     subject=title,
@@ -627,7 +641,7 @@ class ExternalNotificationService:
                         'url': action_url
                     })
                 
-                return await self.slack_service.send_slack_message(
+                result = await self.slack_service.send_slack_message(
                     channel=channel,
                     message=content,
                     title=title,
@@ -646,7 +660,7 @@ class ExternalNotificationService:
                     action_url=action_url
                 )
                 
-                return await self.telegram_service.send_telegram_message(
+                result = await self.telegram_service.send_telegram_message(
                     channel=channel,
                     message=formatted_message
                 )
@@ -662,20 +676,51 @@ class ExternalNotificationService:
                     metadata=metadata
                 )
                 
-                return await self.webhook_service.send_webhook(
+                result = await self.webhook_service.send_webhook(
                     channel=channel,
                     payload=payload
                 )
                 
             else:
                 raise ValueError(f"Unsupported channel type: {channel.type}")
+            
+            # Add timing information to result
+            if result:
+                duration = (datetime.utcnow() - start_time).total_seconds()
+                result['duration_seconds'] = duration
+                result['channel_name'] = channel.name
+                result['channel_id'] = channel.id
                 
+                if result.get('success'):
+                    logger.info(f"Notification sent successfully via {channel.type.value} in {duration:.2f}s")
+                else:
+                    logger.warning(f"Notification failed via {channel.type.value}: {result.get('error', 'Unknown error')}")
+            
+            return result or {
+                'success': False,
+                'error': 'No result returned from notification service',
+                'channel_type': channel.type.value,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+                
+        except ValueError as ve:
+            logger.error(f"Validation error sending notification: {ve}")
+            return {
+                'success': False,
+                'error': f"Validation error: {str(ve)}",
+                'error_type': 'validation_error',
+                'channel_type': channel.type.value if channel else 'unknown',
+                'timestamp': datetime.utcnow().isoformat()
+            }
         except Exception as e:
-            logger.error(f"Error sending external notification: {e}")
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(f"Error sending external notification via {channel.type.value if channel else 'unknown'}: {e}")
             return {
                 'success': False,
                 'error': str(e),
-                'channel_type': channel.type.value,
+                'error_type': type(e).__name__,
+                'channel_type': channel.type.value if channel else 'unknown',
+                'duration_seconds': duration,
                 'timestamp': datetime.utcnow().isoformat()
             }
     
@@ -742,11 +787,116 @@ class ExternalNotificationService:
         }
         return colors.get(priority, 'good')
     
+    async def health_check(self) -> Dict[str, Any]:
+        """Perform health check on external notification services"""
+        health_results = {
+            'overall_status': 'healthy',
+            'services': {},
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        unhealthy_count = 0
+        
+        # Check email service
+        try:
+            health_results['services']['email'] = {
+                'status': 'healthy',
+                'message': 'Email service available'
+            }
+        except Exception as e:
+            health_results['services']['email'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            unhealthy_count += 1
+        
+        # Check Slack service
+        try:
+            if self.slack_service.session:
+                health_results['services']['slack'] = {
+                    'status': 'healthy',
+                    'message': 'Slack service session active'
+                }
+            else:
+                health_results['services']['slack'] = {
+                    'status': 'healthy',
+                    'message': 'Slack service available (no active session)'
+                }
+        except Exception as e:
+            health_results['services']['slack'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            unhealthy_count += 1
+        
+        # Check Telegram service
+        try:
+            if self.telegram_service.session:
+                health_results['services']['telegram'] = {
+                    'status': 'healthy',
+                    'message': 'Telegram service session active'
+                }
+            else:
+                health_results['services']['telegram'] = {
+                    'status': 'healthy',
+                    'message': 'Telegram service available (no active session)'
+                }
+        except Exception as e:
+            health_results['services']['telegram'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            unhealthy_count += 1
+        
+        # Check webhook service
+        try:
+            if self.webhook_service.session:
+                health_results['services']['webhook'] = {
+                    'status': 'healthy',
+                    'message': 'Webhook service session active'
+                }
+            else:
+                health_results['services']['webhook'] = {
+                    'status': 'healthy',
+                    'message': 'Webhook service available (no active session)'
+                }
+        except Exception as e:
+            health_results['services']['webhook'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            unhealthy_count += 1
+        
+        # Determine overall status
+        total_services = len(health_results['services'])
+        if unhealthy_count == 0:
+            health_results['overall_status'] = 'healthy'
+        elif unhealthy_count == total_services:
+            health_results['overall_status'] = 'unhealthy'
+        else:
+            health_results['overall_status'] = 'degraded'
+        
+        health_results['healthy_services'] = total_services - unhealthy_count
+        health_results['total_services'] = total_services
+        
+        return health_results
+    
     async def close(self):
         """Close all external services"""
-        await self.slack_service.close()
-        await self.telegram_service.close()
-        await self.webhook_service.close()
+        try:
+            await self.slack_service.close()
+        except Exception as e:
+            logger.error(f"Error closing Slack service: {e}")
+            
+        try:
+            await self.telegram_service.close()
+        except Exception as e:
+            logger.error(f"Error closing Telegram service: {e}")
+            
+        try:
+            await self.webhook_service.close()
+        except Exception as e:
+            logger.error(f"Error closing Webhook service: {e}")
 
 
 # Create service instance

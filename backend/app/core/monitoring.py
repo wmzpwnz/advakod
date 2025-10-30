@@ -101,7 +101,7 @@ class MonitoringService:
         except Exception as e:
             logger.error(f"Ошибка инициализации Sentry: {e}")
     
-    def init_tracing(self, jaeger_endpoint: str = "http://localhost:14268/api/traces"):
+    def init_tracing(self, jaeger_endpoint: str = "http://jaeger:14268/api/traces"):
         """Инициализация OpenTelemetry трейсинга"""
         if not _otel_available:
             logger.warning("OpenTelemetry недоступен — трейсинг отключен для dev")
@@ -115,7 +115,7 @@ class MonitoringService:
             
             # Настройка Jaeger экспортера
             jaeger_exporter = JaegerExporter(
-                agent_host_name="localhost",
+                agent_host_name="jaeger",
                 agent_port=6831,
             )
             

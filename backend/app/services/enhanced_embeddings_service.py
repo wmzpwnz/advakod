@@ -62,7 +62,7 @@ class EmbeddingCache:
         # Try to connect to Redis
         if not self.redis_client:
             try:
-                redis_url = getattr(settings, 'REDIS_URL', 'redis://localhost:6379/1')
+                redis_url = getattr(settings, 'REDIS_URL', 'redis://redis:6379/1')
                 self.redis_client = redis.from_url(redis_url, decode_responses=False)
                 # Test connection
                 self.redis_client.ping()

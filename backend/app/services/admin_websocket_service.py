@@ -293,6 +293,8 @@ class AdminWebSocketService:
     async def connect_admin(self, websocket: WebSocket, user_id: int, role: str):
         """Подключение админа к WebSocket"""
         await self.manager.connect(websocket, user_id, role)
+        # Запускаем фоновые задачи при первом подключении
+        self._start_background_tasks()
     
     async def disconnect_admin(self, websocket: WebSocket, user_id: int):
         """Отключение админа от WebSocket"""

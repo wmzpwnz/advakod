@@ -51,7 +51,9 @@ api_router.include_router(tokens_router, prefix="/tokens", tags=["tokens"])
 api_router.include_router(rag_router, prefix="/rag", tags=["rag"])
 api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
 api_router.include_router(admin_dashboard_router, prefix="/admin", tags=["admin-dashboard"])
-api_router.include_router(role_management_router, prefix="/api/v1", tags=["role-management"])
+# В router role_management уже задан абсолютный префикс "/admin/roles"
+# Здесь НЕ добавляем дополнительный префикс, иначе получится "/api/v1/api/v1/admin/roles"
+api_router.include_router(role_management_router, tags=["role-management"])
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(llm_monitoring_router, prefix="/llm", tags=["llm-monitoring"])
 # api_router.include_router(enhanced_rag_router, tags=["enhanced-rag"])  # Удален - неиспользуемый

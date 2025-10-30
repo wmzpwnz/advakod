@@ -86,7 +86,7 @@ def reset_and_create_superuser():
         logger.info("=" * 50)
         logger.warning("🔒 IMPORTANT: Save these credentials securely!")
         logger.info("🌐 You can now login to the admin panel with these credentials")
-        logger.info("🔗 Admin login URL: http://localhost:3000/admin-login")
+        logger.info("🔗 Admin login URL: https://advacodex.com/admin-login")
         
         # Verify the user can authenticate
         test_auth = auth_service.authenticate_user(db, SUPERUSER_EMAIL, SUPERUSER_PASSWORD)

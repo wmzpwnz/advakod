@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -49,6 +49,14 @@ class ChatRequest(BaseModel):
     message: str
     session_id: Optional[int] = None
     context: Optional[Dict[str, Any]] = None
+    
+    @field_validator('message')
+    @classmethod
+    def validate_message_not_empty(cls, v: str) -> str:
+        """Проверка, что сообщение не пустое"""
+        if not v or not v.strip():
+            raise ValueError('Сообщение не может быть пустым')
+        return v.strip()
 
 
 class ChatResponse(BaseModel):

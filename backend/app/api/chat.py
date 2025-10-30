@@ -143,12 +143,16 @@ async def update_chat_session(
 @user_rate_limit("chat")
 async def send_message(
     chat_request: ChatRequest,
+    http_request: Request,
     current_user: User = Depends(auth_service.get_current_active_user),
-    db: Session = Depends(get_db),
-    http_request: Request = None
+    db: Session = Depends(get_db)
 ):
     """Отправка сообщения в чат"""
     start_time = time.time()
+    
+    # ЛОГИРОВАНИЕ для отладки
+    logger.info(f"Получен запрос на отправку сообщения от пользователя {current_user.id}")
+    logger.info(f"Данные запроса: message='{chat_request.message[:100]}...', session_id={chat_request.session_id}")
     
     # Получаем или создаем сессию
     if chat_request.session_id:
@@ -192,6 +196,43 @@ async def send_message(
     
     try:
         logger.info(f"Обрабатываем сообщение от пользователя {current_user.id}: {chat_request.message}")
+        # Быстрый ответ для простых приветствий без обращения к ИИ
+        message_text_lower = (chat_request.message or "").strip().lower()
+        greetings = {"привет", "здравствуйте", "добрый день", "добрый вечер", "hello", "hi"}
+        if any(message_text_lower == g or message_text_lower.startswith(g + ",") for g in greetings):
+            response_text = (
+                "Здравствуйте! Я ваш ИИ‑юрист по российскому праву. Задайте, пожалуйста, конкретный вопрос "
+                "(например: ‘как оформить договор аренды помещения?’ или ‘сроки исковой давности по ДТП?’), "
+                "и я отвечу подробно со ссылками на нормы."
+            )
+            actual_cost = 5
+            sources = [{"title": "Система", "text": "Приветствие без вызова модели"}]
+            processing_time = time.time() - start_time
+            assistant_message = ChatMessage(
+                session_id=session.id,
+                role="assistant",
+                content=response_text,
+                message_metadata={
+                    "sources": sources,
+                    "processing_time": processing_time,
+                    "context_used": False,
+                    "tokens_cost": actual_cost
+                }
+            )
+            db.add(assistant_message)
+            db.commit()
+            db.refresh(assistant_message)
+            try:
+                await websocket_service.notify_new_message(assistant_message, session.id)
+            except Exception as ws_error:
+                logger.error(f"Failed to send WebSocket notification: {ws_error}")
+            return ChatResponse(
+                message=response_text,
+                session_id=session.id,
+                message_id=assistant_message.id,
+                sources=sources,
+                processing_time=processing_time
+            )
         
         # Получаем историю чата для контекста
         chat_history = ""
@@ -229,41 +270,81 @@ async def send_message(
         
         # Используем Vistral-24B модель через unified_llm_service
         logger.info("Используем Vistral-24B модель через unified_llm_service")
-        try:
-            # Создаем промпт с историей чата
-            prompt = unified_llm_service.create_legal_prompt(
-                question=chat_request.message,
-                context=chat_history
-            )
-            logger.info(f"Вызываем unified_llm_service.generate_response с промптом: {prompt[:100]}...")
-            
-            # Используем таймаут и токены из конфигурации для чата
-            response_generator = unified_llm_service.generate_response(
-                prompt=prompt,
-                max_tokens=settings.AI_CHAT_RESPONSE_TOKENS,
-                stream=False
-            )
-            
-            # Собираем ответ из генератора
-            response_text = ""
-            async for chunk in response_generator:
-                response_text += chunk
-            logger.info(f"Unified LLM сервис вернул ответ длиной: {len(response_text)} символов")
-            actual_cost = min(len(response_text) // 3, 200)  # Примерно 1 токен за 3 символа
-            sources = [{"title": "Vistral-24B", "text": "Ответ от русскоязычной ИИ-модели Vistral-24B"}]
-        except asyncio.TimeoutError:
-            logger.warning(f"⚠️ AI чат превысил таймаут ({settings.AI_CHAT_RESPONSE_TIMEOUT} сек), используем fallback")
-            # Простой fallback ответ
-            response_text = f"Извините, обработка вашего запроса заняла слишком много времени. Попробуйте переформулировать вопрос более кратко."
-            actual_cost = 50  # Фиксированная стоимость за fallback-ответ
-            sources = [{"title": "AI Lawyer (Timeout)", "text": "Ответ при превышении времени обработки"}]
-        except Exception as llm_err:
-            logger.error(f"Ошибка в unified_llm_service: {llm_err}")
-            # Простой fallback ответ
-            logger.info("Используем fallback ответ")
-            response_text = f"Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз."
-            actual_cost = 50  # Фиксированная стоимость за fallback-ответ
-            sources = [{"title": "AI Lawyer (Error)", "text": "Ответ при ошибке обработки"}]
+        
+        # ДОБАВЛЕНО: Проверяем готовность модели перед генерацией
+        if not unified_llm_service.is_model_ready():
+            model_status = await unified_llm_service.get_model_status()
+            if not model_status.get("model_loaded"):
+                logger.warning(f"AI модель не загружена для пользователя {current_user.id}")
+                response_text = "AI-консультант временно недоступен. Система находится в процессе инициализации. Пожалуйста, попробуйте через несколько минут."
+                actual_cost = 10
+                sources = [{"title": "Система", "text": "Уведомление о недоступности AI"}]
+            elif model_status.get("active_requests", 0) >= model_status.get("max_concurrency", 1):
+                logger.warning(f"Система перегружена для пользователя {current_user.id}")
+                response_text = "Система временно перегружена. Пожалуйста, попробуйте через несколько секунд."
+                actual_cost = 10
+                sources = [{"title": "Система", "text": "Уведомление о перегрузке"}]
+            else:
+                logger.warning(f"AI модель не готова для пользователя {current_user.id}: {model_status}")
+                response_text = "AI-консультант временно недоступен. Попробуйте позже."
+                actual_cost = 10
+                sources = [{"title": "Система", "text": "Уведомление о недоступности"}]
+        else:
+            try:
+                # Создаем промпт с историей чата
+                prompt = unified_llm_service.create_legal_prompt(
+                    question=chat_request.message,
+                    context=chat_history
+                )
+                logger.info(f"Вызываем unified_llm_service.generate_response с промптом: {prompt[:100]}...")
+                
+                # Генерируем с жестким таймаутом UI-чата
+                response_text = await asyncio.wait_for(
+                    unified_llm_service._generate_response_internal(
+                        prompt=prompt,
+                        max_tokens=settings.AI_CHAT_RESPONSE_TOKENS,
+                        temperature=getattr(settings, "VISTRAL_TEMPERATURE", 0.3),
+                        top_p=getattr(settings, "VISTRAL_TOP_P", 0.8)
+                    ),
+                    timeout=settings.AI_CHAT_RESPONSE_TIMEOUT
+                )
+                
+                # ДОБАВЛЕНО: Проверяем качество ответа
+                if not response_text or response_text.startswith("[ERROR]") or response_text.startswith("[TIMEOUT]") or response_text.startswith("[СИСТЕМА]"):
+                    if response_text.startswith("[TIMEOUT]"):
+                        logger.warning(f"⚠️ AI чат превысил таймаут для пользователя {current_user.id}")
+                        response_text = "Извините, обработка вашего запроса заняла слишком много времени. Попробуйте переформулировать вопрос более кратко или разбить его на несколько простых вопросов."
+                        actual_cost = 30
+                        sources = [{"title": "AI Lawyer (Timeout)", "text": "Ответ при превышении времени обработки"}]
+                    elif response_text.startswith("[ERROR]"):
+                        logger.error(f"❌ AI ошибка для пользователя {current_user.id}: {response_text}")
+                        response_text = "Извините, произошла ошибка при обработке вашего запроса. Попробуйте переформулировать вопрос или обратитесь к юристу для получения надежной консультации."
+                        actual_cost = 30
+                        sources = [{"title": "AI Lawyer (Error)", "text": "Ответ при ошибке обработки"}]
+                    elif response_text.startswith("[СИСТЕМА]"):
+                        # Системный fallback ответ уже готов
+                        actual_cost = 20
+                        sources = [{"title": "Система", "text": "Системное уведомление"}]
+                    else:
+                        logger.error(f"❌ Пустой ответ от AI для пользователя {current_user.id}")
+                        response_text = "Не удалось получить ответ от AI-консультанта. Попробуйте переформулировать вопрос или обратитесь к квалифицированному юристу."
+                        actual_cost = 20
+                        sources = [{"title": "AI Lawyer (Empty)", "text": "Ответ при пустом результате"}]
+                else:
+                    logger.info(f"✅ Unified LLM сервис вернул ответ длиной: {len(response_text)} символов для пользователя {current_user.id}")
+                    actual_cost = min(len(response_text) // 3, 200)  # Примерно 1 токен за 3 символа
+                    sources = [{"title": "Vistral-24B", "text": "Ответ от русскоязычной ИИ-модели Vistral-24B"}]
+                    
+            except asyncio.TimeoutError:
+                logger.warning(f"⚠️ AI чат превысил таймаут ({settings.AI_CHAT_RESPONSE_TIMEOUT} сек) для пользователя {current_user.id}")
+                response_text = "Извините, обработка вашего запроса заняла слишком много времени. Попробуйте переформулировать вопрос более кратко."
+                actual_cost = 50
+                sources = [{"title": "AI Lawyer (Timeout)", "text": "Ответ при превышении времени обработки"}]
+            except Exception as llm_err:
+                logger.error(f"❌ Ошибка в unified_llm_service для пользователя {current_user.id}: {llm_err}")
+                response_text = "Извините, произошла ошибка при обработке вашего запроса. Рекомендую обратиться к квалифицированному юристу для получения надежной консультации."
+                actual_cost = 50
+                sources = [{"title": "AI Lawyer (Error)", "text": "Ответ при ошибке обработки"}]
         
         processing_time = time.time() - start_time
         
@@ -378,19 +459,40 @@ async def delete_chat_session(
             detail="Сессия чата не найдена"
         )
     
-    db.delete(session)
-    db.commit()
-    
-    return {"message": "Сессия чата удалена"}
+    # Мягкая очистка связанных сущностей, чтобы не нарушать внешние ключи
+    try:
+        # 1) Отвязываем транзакции токенов от сессии
+        from ..models import TokenTransaction, ChatMessage
+        db.query(TokenTransaction).filter(
+            TokenTransaction.chat_session_id == session_id
+        ).update({TokenTransaction.chat_session_id: None})
+        
+        # 2) Удаляем сообщения сессии
+        db.query(ChatMessage).filter(
+            ChatMessage.session_id == session_id
+        ).delete(synchronize_session=False)
+        
+        # 3) Удаляем саму сессию
+        db.delete(session)
+        db.commit()
+        return {"message": "Сессия чата удалена"}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Ошибка удаления сессии {session_id}: {e}", exc_info=True)
+        # Возвращаем 409, чтобы фронтенд не зациклевал попытки
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Сессию нельзя удалить из-за связанных записей"
+        )
 
 
 @router.post("/message/stream")
 @user_rate_limit("chat")
 async def send_message_stream(
     chat_request: ChatRequest,
+    http_request: Request,
     current_user: User = Depends(auth_service.get_current_active_user),
-    db: Session = Depends(get_db),
-    http_request: Request = None
+    db: Session = Depends(get_db)
 ):
     """Отправка сообщения в чат с стримингом ответа"""
     start_time = time.time()
@@ -529,11 +631,11 @@ async def send_message_stream(
     
     return StreamingResponse(
         generate_stream(),
-        media_type="text/plain",
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
+            "X-Accel-Buffering": "no",
         }
     )
 

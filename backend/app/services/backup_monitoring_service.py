@@ -10,11 +10,28 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from ..core.database import get_db
-from ..models.backup import BackupRecord, BackupSchedule, BackupIntegrityCheck, RestoreRecord
-from ..models.backup import BackupStatus, BackupType
-from ..services.notification_service import notification_service
-from ..services.backup_service import backup_service
+from ..core.database import get_db, SessionLocal
+try:
+    from ..models.backup import BackupRecord, BackupSchedule, BackupIntegrityCheck, RestoreRecord
+    from ..models.backup import BackupStatus, BackupType
+    BACKUP_MODELS_AVAILABLE = True
+except ImportError:
+    logger.warning("⚠️ Backup models not available - backup monitoring will be limited")
+    BACKUP_MODELS_AVAILABLE = False
+
+try:
+    from ..services.notification_service import notification_service
+    NOTIFICATION_SERVICE_AVAILABLE = True
+except ImportError:
+    logger.warning("⚠️ Notification service not available")
+    NOTIFICATION_SERVICE_AVAILABLE = False
+
+try:
+    from ..services.backup_service import backup_service
+    BACKUP_SERVICE_AVAILABLE = True
+except ImportError:
+    logger.warning("⚠️ Backup service not available")
+    BACKUP_SERVICE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -78,15 +95,21 @@ class BackupMonitoringService:
     
     async def get_system_metrics(self) -> Dict[str, Any]:
         """Получает метрики системы резервного копирования"""
-        db = next(get_db())
+        if not BACKUP_MODELS_AVAILABLE:
+            return {
+                "status": "unavailable",
+                "error": "Backup models not available",
+                "timestamp": datetime.utcnow().isoformat()
+            }
         
         try:
-            now = datetime.utcnow()
-            
-            # Основные метрики
-            total_backups = db.query(BackupRecord).count()
-            successful_backups = db.query(BackupRecord).filter(BackupRecord.success == True).count()
-            failed_backups = db.query(BackupRecord).filter(BackupRecord.success == False).count()
+            with SessionLocal() as db:
+                now = datetime.utcnow()
+                
+                # Основные метрики
+                total_backups = db.query(BackupRecord).count()
+                successful_backups = db.query(BackupRecord).filter(BackupRecord.success == True).count()
+                failed_backups = db.query(BackupRecord).filter(BackupRecord.success == False).count()
             
             # Последняя успешная резервная копия
             last_successful_backup = db.query(BackupRecord).filter(
@@ -185,8 +208,14 @@ class BackupMonitoringService:
                 'system_health': await self._assess_system_health()
             }
             
-        finally:
-            db.close()
+        except Exception as e:
+            logger.error(f"❌ Error getting backup system metrics: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat(),
+                "database_available": False
+            }
     
     async def _check_alert_conditions(self, metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Проверяет условия для отправки алертов"""
@@ -290,6 +319,10 @@ class BackupMonitoringService:
     async def _send_alert(self, alert: Dict[str, Any]):
         """Отправляет алерт через систему уведомлений"""
         try:
+            if not NOTIFICATION_SERVICE_AVAILABLE:
+                logger.warning(f"🚨 Алерт резервного копирования (notification service unavailable): {alert['title']} - {alert['message']}")
+                return
+            
             severity_colors = {
                 'low': 'info',
                 'medium': 'warning', 
@@ -320,7 +353,10 @@ class BackupMonitoringService:
             import shutil
             
             # Проверяем использование диска для директории резервных копий
-            backup_dir = backup_service.backup_dir
+            if not BACKUP_SERVICE_AVAILABLE:
+                backup_dir = "/tmp/backups"  # Fallback directory
+            else:
+                backup_dir = backup_service.backup_dir
             
             if os.path.exists(backup_dir):
                 total, used, free = shutil.disk_usage(backup_dir)
@@ -368,16 +404,24 @@ class BackupMonitoringService:
         """Оценивает общее состояние системы резервного копирования"""
         try:
             # Проверяем доступность директории резервных копий
-            backup_dir_accessible = os.path.exists(backup_service.backup_dir) and os.access(backup_service.backup_dir, os.W_OK)
+            if BACKUP_SERVICE_AVAILABLE:
+                backup_dir_accessible = os.path.exists(backup_service.backup_dir) and os.access(backup_service.backup_dir, os.W_OK)
+                backup_dir = backup_service.backup_dir
+            else:
+                backup_dir_accessible = False
+                backup_dir = "unavailable"
             
             # Проверяем наличие активных расписаний
-            db = next(get_db())
-            try:
-                active_schedules_count = db.query(BackupSchedule).filter(
-                    BackupSchedule.enabled == True
-                ).count()
-            finally:
-                db.close()
+            active_schedules_count = 0
+            if BACKUP_MODELS_AVAILABLE:
+                try:
+                    with SessionLocal() as db:
+                        active_schedules_count = db.query(BackupSchedule).filter(
+                            BackupSchedule.enabled == True
+                        ).count()
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not check backup schedules: {e}")
+                    active_schedules_count = 0
             
             # Определяем общее состояние
             issues = []

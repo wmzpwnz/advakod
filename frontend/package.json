@@ -32,8 +32,12 @@
   "scripts": {
     "start": "PORT=3000 react-scripts start",
     "build": "react-scripts build",
+    "build:prod": "ESLINT_CONFIG_FILE=.eslintrc.production.js react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "lint": "eslint src/",
+    "lint:prod": "eslint -c .eslintrc.production.js src/",
+    "lint:fix": "eslint -c .eslintrc.production.js src/ --fix"
   },
   "eslintConfig": {
     "extends": [

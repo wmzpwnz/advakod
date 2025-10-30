@@ -36,7 +36,7 @@ import {
 // Import all module components
 import UserManagement from '../components/UserManagement';
 import DocumentManagement from '../components/DocumentManagement';
-import EnhancedRoleManagement from '../components/EnhancedRoleManagement';
+import RoleManagement from './RoleManagement';
 import EnhancedModerationPanel from '../components/EnhancedModerationPanel';
 import ModerationAnalytics from '../components/ModerationAnalytics';
 import ModerationGamification from '../components/ModerationGamification';
@@ -398,7 +398,7 @@ const IntegratedAdminPanel = () => {
   const componentMap = {
     UserManagement,
     DocumentManagement,
-    EnhancedRoleManagement,
+    RoleManagement,
     EnhancedModerationPanel,
     ModerationAnalytics,
     ModerationGamification,
@@ -583,14 +583,28 @@ const IntegratedAdminPanel = () => {
             Модули системы
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredModules.slice(1).map((module) => (
-              <ModuleCard
-                key={module.id}
-                module={module}
-                onClick={() => setActiveModule(module.id)}
-                className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
-              />
-            ))}
+            {filteredModules.slice(1).map((module) => {
+              const Icon = module.icon;
+              return (
+                <ModuleCard
+                  key={module.id}
+                  module={module.id}
+                  variant="module"
+                  onClick={() => setActiveModule(module.id)}
+                  className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
+                >
+                  <div className="flex items-start">
+                    <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 mr-3">
+                      {Icon && <Icon className="h-6 w-6 text-gray-700 dark:text-gray-200" />}
+                    </div>
+                    <div>
+                      <div className="text-gray-900 dark:text-white font-semibold mb-1">{module.name}</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-sm">{module.description}</div>
+                    </div>
+                  </div>
+                </ModuleCard>
+              );
+            })}
           </div>
         </div>
 
@@ -677,7 +691,7 @@ const IntegratedAdminPanel = () => {
     // Handle single component modules
     const componentName = module.id === 'users' ? 'UserManagement' :
                           module.id === 'documents' ? 'DocumentManagement' :
-                          module.id === 'roles' ? 'EnhancedRoleManagement' :
+                          module.id === 'roles' ? 'RoleManagement' :
                           module.id === 'system' ? 'LogsViewer' : null;
 
     const Component = componentMap[componentName];

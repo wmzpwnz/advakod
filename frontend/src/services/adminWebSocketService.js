@@ -1,4 +1,4 @@
-import { getApiUrl } from '../config/api';
+// WebSocket URL нельзя строить через getApiUrl (он добавляет /api/v1 и ломает апгрейд)
 
 class AdminWebSocketService {
   constructor() {
@@ -8,6 +8,8 @@ class AdminWebSocketService {
     this.reconnectDelay = 1000;
     this.listeners = new Map();
     this.isConnected = false;
+    this.isConnecting = false;
+    this.pendingConnect = null;
     this.token = null;
     this.userId = null;
     this.heartbeatInterval = null;
@@ -19,22 +21,27 @@ class AdminWebSocketService {
     this.token = token;
     this.userId = userId;
     
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return Promise.resolve();
     }
 
-    return new Promise((resolve, reject) => {
+    if (this.isConnecting && this.pendingConnect) {
+      return this.pendingConnect;
+    }
+
+    this.pendingConnect = new Promise((resolve, reject) => {
       try {
-        // Convert HTTP URL to WebSocket URL
-        const wsUrl = getApiUrl('/ws/admin')
-          .replace('http://', 'ws://')
-          .replace('https://', 'wss://');
+        // Build WS URL directly to avoid /api/v1 prefix
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsUrl = `${protocol}://${window.location.host}/ws/general`;
         
         this.ws = new WebSocket(`${wsUrl}?token=${token}&user_id=${userId}`);
+        this.isConnecting = true;
 
         this.ws.onopen = () => {
           console.log('Admin WebSocket connected');
           this.isConnected = true;
+          this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.startHeartbeat();
           this.emit('connected');
@@ -53,17 +60,21 @@ class AdminWebSocketService {
         this.ws.onclose = (event) => {
           console.log('Admin WebSocket disconnected:', event.code, event.reason);
           this.isConnected = false;
+          this.isConnecting = false;
           this.stopHeartbeat();
           this.emit('disconnected', { code: event.code, reason: event.reason });
           
-          // Attempt to reconnect if not a normal closure
-          if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+          // Обработка различных кодов ошибок
+          const shouldReconnect = this.handleWebSocketClose(event.code, event.reason);
+          
+          if (shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.scheduleReconnect();
           }
         };
 
         this.ws.onerror = (error) => {
           console.error('Admin WebSocket error:', error);
+          this.isConnecting = false;
           this.emit('error', error);
           reject(error);
         };
@@ -72,7 +83,10 @@ class AdminWebSocketService {
         console.error('Error creating WebSocket connection:', error);
         reject(error);
       }
+    }).finally(() => {
+      this.pendingConnect = null;
     });
+    return this.pendingConnect;
   }
 
   // Handle incoming messages
@@ -251,14 +265,14 @@ class AdminWebSocketService {
   // Schedule reconnection
   scheduleReconnect() {
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000); // Max 30 seconds
     
-    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
+    console.log(`Scheduling admin reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
     
     setTimeout(() => {
       if (!this.isConnected) {
         this.connect(this.token, this.userId).catch(error => {
-          console.error('Reconnection failed:', error);
+          console.error('Admin reconnection failed:', error);
         });
       }
     }, delay);
@@ -307,6 +321,29 @@ class AdminWebSocketService {
         }
       });
     }
+  }
+
+  // Handle WebSocket close events
+  handleWebSocketClose(code, reason) {
+    const errorMap = {
+      1008: 'Authentication failed',
+      1003: 'Admin access denied',
+      1011: 'Server error',
+      1006: 'Connection lost',
+      1000: 'Normal closure'
+    };
+    
+    const message = errorMap[code] || 'Unknown error';
+    console.log(`Admin WebSocket closed: ${code} - ${message} (${reason})`);
+    
+    // Не переподключаемся при ошибках аутентификации и доступа
+    const permanentErrors = [1008, 1003];
+    if (permanentErrors.includes(code)) {
+      this.emit('authError', { code, reason, message });
+      return false;
+    }
+    
+    return code !== 1000; // Переподключаемся для всех ошибок кроме нормального закрытия
   }
 
   // Get connection status

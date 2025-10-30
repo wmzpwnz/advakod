@@ -38,7 +38,6 @@ def get_current_admin(current_user: User = Depends(auth_service.get_current_user
 # ==================== УПРАВЛЕНИЕ РОЛЯМИ ====================
 
 @router.get("/", response_model=List[RoleResponse])
-@require_permission("roles.read")
 async def get_roles(
     include_inactive: bool = False,
     current_admin: User = Depends(get_current_admin),
@@ -197,7 +196,6 @@ async def delete_role(
 # ==================== УПРАВЛЕНИЕ ПРАВАМИ ====================
 
 @router.get("/permissions/", response_model=List[PermissionResponse])
-@require_permission("roles.read")
 async def get_permissions(
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
@@ -212,7 +210,6 @@ async def get_permissions(
 
 
 @router.get("/{role_id}/permissions/", response_model=List[PermissionResponse])
-@require_permission("roles.read")
 async def get_role_permissions(
     role_id: int,
     current_admin: User = Depends(get_current_admin),
@@ -348,7 +345,6 @@ async def get_user_roles(
 
 
 @router.post("/users/{user_id}/roles/")
-@require_permission("roles.assign")
 async def assign_role_to_user(
     user_id: int,
     role_data: UserRoleAssign,
@@ -390,7 +386,6 @@ async def assign_role_to_user(
 
 
 @router.delete("/users/{user_id}/roles/{role_id}")
-@require_permission("roles.assign")
 async def revoke_role_from_user(
     user_id: int,
     role_id: int,

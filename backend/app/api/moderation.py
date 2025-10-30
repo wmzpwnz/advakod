@@ -27,8 +27,23 @@ auth_service = AuthService()
 
 
 def check_moderator_permission(current_user: User, db: Session):
-    """Проверка прав модератора"""
-    if not current_user.has_permission("chats.moderate"):
+    """Проверка прав модератора (совместимость с текущей схемой прав).
+
+    Принимаем следующие варианты:
+    - явное право chats.moderate (если настроено)
+    - права из текущей матрицы: manage_moderation или moderate_content
+    - роли moderator/admin/super_admin
+    - любой is_admin (как безопасный дефолт для админ-панели)
+    """
+    role = getattr(current_user, 'role', None)
+    has_access = (
+        getattr(current_user, 'is_admin', False) or
+        current_user.has_permission("chats.moderate") or
+        current_user.has_permission("manage_moderation") or
+        current_user.has_permission("moderate_content") or
+        role in ("moderator", "admin", "super_admin")
+    )
+    if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Moderator permission required"

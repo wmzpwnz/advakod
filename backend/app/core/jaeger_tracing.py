@@ -43,7 +43,7 @@ class JaegerTracing:
             return
         
         # Configuration from environment
-        jaeger_host = os.getenv("JAEGER_AGENT_HOST", "localhost")
+        jaeger_host = os.getenv("JAEGER_AGENT_HOST", "jaeger")
         jaeger_port = int(os.getenv("JAEGER_AGENT_PORT", "6831"))
         service_name = os.getenv("JAEGER_SERVICE_NAME", "advakod-admin-panel")
         
