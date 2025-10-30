@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-10-31T01:56:38.550776",
+  "timestamp": "2025-10-31T02:27:00.468186",
   "is_running": true,
-  "current_task": "Интеграция 463 файлов в RAG",
-  "downloaded_files": 465,
+  "current_task": "Скачивание Уголовный кодекс РФ",
+  "downloaded_files": 469,
   "processed_files": 29,
   "errors": 0,
   "total_codexes": 4
