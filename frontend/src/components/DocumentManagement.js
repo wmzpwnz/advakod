@@ -9,7 +9,9 @@ import {
   AlertCircle,
   CheckCircle,
   Eye,
-  Plus
+  Plus,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '../config/api';
@@ -24,6 +26,7 @@ const DocumentManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showUrlUploadModal, setShowUrlUploadModal] = useState(false);
+  const [showCodesDownloadModal, setShowCodesDownloadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadUrl, setUploadUrl] = useState('');
@@ -42,25 +45,59 @@ const DocumentManagement = () => {
     limit: 20,
     total: 0
   });
+  const [expandedDocuments, setExpandedDocuments] = useState(new Set());
+  const [documentChunks, setDocumentChunks] = useState({});
+  const [loadingChunks, setLoadingChunks] = useState(new Set());
 
   useEffect(() => {
     loadDocuments();
   }, [pagination.skip]);
 
-  const loadDocuments = async () => {
+  const loadDocuments = async (forceRefresh = false) => {
     setLoading(true);
     setError('');
+    setMessage(''); // Очищаем предыдущие сообщения
     try {
       const params = new URLSearchParams({
         skip: pagination.skip.toString(),
-        limit: pagination.limit.toString()
+        limit: pagination.limit.toString(),
+        _t: Date.now().toString() // Timestamp для предотвращения кэширования
       });
 
-      const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`);
-      setDocuments(response.data.documents || []);
+      if (forceRefresh) {
+        params.append('_force', '1'); // Дополнительный параметр для принудительного обновления
+      }
+
+      const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      const documents = response.data.documents || [];
+      setDocuments(documents);
       setPagination(prev => ({ ...prev, total: response.data.total || 0 }));
+      
+      // Показываем сообщение об успешном обновлении
+      if (forceRefresh && documents.length > 0) {
+        setMessage(`✅ Список обновлен. Найдено документов: ${documents.length}`);
+        setMessageType('success');
+        setTimeout(() => {
+          setMessage('');
+        }, 3000);
+      } else if (forceRefresh && documents.length === 0) {
+        setMessage('ℹ️ Документы не найдены');
+        setMessageType('info');
+        setTimeout(() => {
+          setMessage('');
+        }, 3000);
+      }
     } catch (err) {
-      setError('Ошибка загрузки документов');
+      const errorMessage = err.response?.data?.detail || err.response?.data?.error || 'Ошибка загрузки документов';
+      setError(errorMessage);
       console.error('Documents error:', err);
     } finally {
       setLoading(false);
@@ -84,6 +121,42 @@ const DocumentManagement = () => {
       console.error('Search error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleDocumentChunks = async (documentId) => {
+    const isExpanded = expandedDocuments.has(documentId);
+    
+    if (isExpanded) {
+      // Сворачиваем
+      const newExpanded = new Set(expandedDocuments);
+      newExpanded.delete(documentId);
+      setExpandedDocuments(newExpanded);
+    } else {
+      // Раскрываем - загружаем чанки
+      setExpandedDocuments(new Set([...expandedDocuments, documentId]));
+      
+      // Если чанки еще не загружены, загружаем их
+      if (!documentChunks[documentId]) {
+        setLoadingChunks(new Set([...loadingChunks, documentId]));
+        try {
+          const response = await axios.get(`${getApiUrl(`/admin/documents/${documentId}/chunks`)}`);
+          setDocumentChunks(prev => ({
+            ...prev,
+            [documentId]: response.data.chunks || []
+          }));
+        } catch (err) {
+          console.error('Error loading chunks:', err);
+          setDocumentChunks(prev => ({
+            ...prev,
+            [documentId]: []
+          }));
+        } finally {
+          const newLoading = new Set(loadingChunks);
+          newLoading.delete(documentId);
+          setLoadingChunks(newLoading);
+        }
+      }
     }
   };
 
@@ -444,19 +517,21 @@ const DocumentManagement = () => {
   return (
     <div className="space-y-6">
       {/* Заголовок и действия */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Управление документами</h2>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={loadDocuments}
-            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            onClick={() => loadDocuments(true)}
+            disabled={loading}
+            className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Обновить список документов"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Обновить
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Обновление...' : 'Обновить'}
           </button>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-4 w-4 mr-2" />
             Загрузить файл
@@ -467,6 +542,14 @@ const DocumentManagement = () => {
           >
             <Plus className="h-4 w-4 mr-2" />
             Загрузить по ссылке
+          </button>
+          <button
+            onClick={() => setShowCodesDownloadModal(true)}
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
+            title="Загрузка кодексов РФ с pravo.gov.ru (гибридный подход)"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Загрузить кодексы РФ
           </button>
         </div>
       </div>
@@ -572,70 +655,144 @@ const DocumentManagement = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {documents.map((doc) => (
-              <div key={doc.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
-                        <span className="text-lg">{getFileTypeIcon(doc.filename)}</span>
+            {documents.map((doc) => {
+              const isExpanded = expandedDocuments.has(doc.id);
+              const chunks = documentChunks[doc.id] || [];
+              const isLoadingChunks = loadingChunks.has(doc.id);
+              const hasChunks = doc.chunks_count > 1 || chunks.length > 0;
+              
+              return (
+                <div key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4 flex-1">
+                        {hasChunks && (
+                          <button
+                            onClick={() => toggleDocumentChunks(doc.id)}
+                            className="flex-shrink-0 mt-1 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            title={isExpanded ? "Свернуть чанки" : "Показать чанки"}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-5 w-5" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5" />
+                            )}
+                          </button>
+                        )}
+                        <div className="flex-shrink-0">
+                          <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
+                            <span className="text-lg">{getFileTypeIcon(doc.filename)}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {getDocumentTitle(doc)}
+                            </h3>
+                            {getDocumentDate(doc) && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {getDocumentDate(doc)}
+                              </span>
+                            )}
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              getDocumentStatus(doc) === 'processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                              getDocumentStatus(doc) === 'processing' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                              getDocumentStatus(doc) === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
+                              getDocumentStatus(doc) === 'ready' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                            }`}>
+                              {getDocumentStatus(doc) === 'processed' ? 'Обработан' :
+                               getDocumentStatus(doc) === 'processing' ? 'Обрабатывается' :
+                               getDocumentStatus(doc) === 'error' ? 'Ошибка' :
+                               getDocumentStatus(doc) === 'ready' ? 'Готов' : 'Готов'}
+                            </span>
+                            {hasChunks && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                {doc.chunks_count || chunks.length} чанков
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            {doc.metadata?.filename || doc.metadata?.original_filename || doc.filename || 'Без имени файла'}
+                          </p>
+                          <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span>Размер: {formatFileSize(doc.metadata?.file_size || doc.length || doc.size || 0)}</span>
+                            {(doc.metadata?.pages || doc.pages) && (
+                              <span>Страниц: {doc.metadata?.pages || doc.pages}</span>
+                            )}
+                            {doc.language && (
+                              <span>Язык: {doc.language}</span>
+                            )}
+                            {(doc.metadata?.document_type || doc.metadata?.type || doc.type) && (
+                              <span>Тип: {doc.metadata?.document_type || doc.metadata?.type || doc.type}</span>
+                            )}
+                          </div>
+                          <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                            {getDocumentPreview(doc)}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {getDocumentTitle(doc)}
-                        </h3>
-                        {getDocumentDate(doc) && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {getDocumentDate(doc)}
-                          </span>
-                        )}
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          getDocumentStatus(doc) === 'processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                          getDocumentStatus(doc) === 'processing' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                          getDocumentStatus(doc) === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                          getDocumentStatus(doc) === 'ready' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        }`}>
-                          {getDocumentStatus(doc) === 'processed' ? 'Обработан' :
-                           getDocumentStatus(doc) === 'processing' ? 'Обрабатывается' :
-                           getDocumentStatus(doc) === 'error' ? 'Ошибка' :
-                           getDocumentStatus(doc) === 'ready' ? 'Готов' : 'Готов'}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {doc.metadata?.filename || doc.metadata?.original_filename || doc.filename || 'Без имени файла'}
-                      </p>
-                      <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                        <span>Размер: {formatFileSize(doc.metadata?.file_size || doc.length || doc.size || 0)}</span>
-                        {(doc.metadata?.pages || doc.pages) && (
-                          <span>Страниц: {doc.metadata?.pages || doc.pages}</span>
-                        )}
-                        {doc.language && (
-                          <span>Язык: {doc.language}</span>
-                        )}
-                        {(doc.metadata?.document_type || doc.metadata?.type || doc.type) && (
-                          <span>Тип: {doc.metadata?.document_type || doc.metadata?.type || doc.type}</span>
-                        )}
-                      </div>
-                      <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                        {getDocumentPreview(doc)}
+                        <button
+                          onClick={() => handleDeleteDocument(doc.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors"
+                          title="Удалить документ"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleDeleteDocument(doc.id)}
-                      className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors"
-                      title="Удалить документ"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  
+                  {/* Выпадающий список чанков */}
+                  {isExpanded && hasChunks && (
+                    <div className="bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                      <div className="px-6 py-4">
+                        {isLoadingChunks ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                            <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Загрузка чанков...</span>
+                          </div>
+                        ) : chunks.length > 0 ? (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              Чанки документа ({chunks.length}):
+                            </h4>
+                            {chunks.map((chunk, index) => (
+                              <div
+                                key={chunk.id}
+                                className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 transition-colors"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
+                                        Чанк {chunk.chunk_index !== undefined ? chunk.chunk_index + 1 : index + 1}
+                                      </span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {chunk.chunk_length} символов
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+                                      {chunk.content?.substring(0, 300) || 'Нет содержимого'}
+                                      {chunk.content && chunk.content.length > 300 && '...'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                            Чанки не найдены
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -749,6 +906,216 @@ const DocumentManagement = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно загрузки кодексов */}
+      {showCodesDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Загрузка кодексов РФ (Гибридный подход)
+              </h3>
+              <button
+                onClick={() => setShowCodesDownloadModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <strong>Гибридный подход:</strong> Сначала пробует скачать PDF через API, 
+                  если PDF маленький (заглушка) - использует HTML парсинг для получения полного текста кодекса.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Запустить загрузку всех кодексов? Это может занять 2-4 часа.')) return;
+                    
+                    setUploading(true);
+                    setUploadProgress({
+                      isUploading: true,
+                      progress: 0,
+                      currentStep: 'starting',
+                      error: '',
+                      success: false,
+                      validationDetails: null,
+                      chunksInfo: null
+                    });
+                    
+                    try {
+                      const response = await axios.post(
+                        getApiUrl('/api/v1/codes/hybrid/download'),
+                        {},
+                        {
+                          headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          }
+                        }
+                      );
+                      
+                      setUploadProgress(prev => ({
+                        ...prev,
+                        progress: 100,
+                        currentStep: 'complete',
+                        success: true
+                      }));
+                      
+                      setMessage('✅ Загрузка кодексов запущена в фоновом режиме. Проверьте статус через несколько минут.');
+                      setMessageType('success');
+                      
+                      setTimeout(() => {
+                        setShowCodesDownloadModal(false);
+                        setUploadProgress({
+                          isUploading: false,
+                          progress: 0,
+                          currentStep: '',
+                          error: '',
+                          success: false,
+                          validationDetails: null,
+                          chunksInfo: null
+                        });
+                        loadDocuments();
+                      }, 2000);
+                    } catch (err) {
+                      setUploadProgress(prev => ({
+                        ...prev,
+                        progress: 0,
+                        currentStep: 'error',
+                        error: err.response?.data?.detail || err.message,
+                        success: false
+                      }));
+                      setError(err.response?.data?.detail || err.message);
+                      setMessage(`❌ Ошибка загрузки: ${err.response?.data?.detail || err.message}`);
+                      setMessageType('error');
+                      // НЕ закрываем модалку при ошибке - пользователь должен видеть ошибку
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  disabled={uploading}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {uploading ? 'Запуск...' : 'Загрузить все кодексы (2-4 часа)'}
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    const codexName = prompt('Введите название кодекса для теста:\n\nДоступные:\n- Трудовой кодекс РФ\n- Гражданский кодекс РФ (часть 1)\n- Налоговый кодекс РФ (часть 1)\n- Уголовный кодекс РФ');
+                    if (!codexName) return;
+                    
+                    setUploading(true);
+                    setUploadProgress({
+                      isUploading: true,
+                      progress: 0,
+                      currentStep: 'testing',
+                      error: '',
+                      success: false,
+                      validationDetails: null,
+                      chunksInfo: null
+                    });
+                    
+                    try {
+                      const response = await axios.post(
+                        `${getApiUrl('/api/v1/codes/hybrid/download/test')}?codex_name=${encodeURIComponent(codexName)}`,
+                        {},
+                        {
+                          headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          }
+                        }
+                      );
+                      
+                      if (response.data.success) {
+                        setUploadProgress(prev => ({
+                          ...prev,
+                          progress: 100,
+                          currentStep: 'complete',
+                          success: true
+                        }));
+                        const sizeMB = (response.data.result.file_size / 1024 / 1024).toFixed(2);
+                        setMessage(`✅ Тест успешен! Размер: ${sizeMB} МБ, Метод: ${response.data.result.method_used}`);
+                        setMessageType('success');
+                        
+                        // Закрываем модалку только при успехе
+                        setTimeout(() => {
+                          setShowCodesDownloadModal(false);
+                          setUploadProgress({
+                            isUploading: false,
+                            progress: 0,
+                            currentStep: '',
+                            error: '',
+                            success: false,
+                            validationDetails: null,
+                            chunksInfo: null
+                          });
+                          loadDocuments();
+                        }, 2000);
+                      } else {
+                        setUploadProgress(prev => ({
+                          ...prev,
+                          progress: 0,
+                          currentStep: 'error',
+                          error: response.data.result.error || 'Ошибка теста',
+                          success: false
+                        }));
+                        setError(response.data.result.error || 'Ошибка теста');
+                        setMessage(`❌ Ошибка теста: ${response.data.result.error || 'Ошибка теста'}`);
+                        setMessageType('error');
+                        // НЕ закрываем модалку при ошибке - пользователь должен видеть ошибку
+                      }
+                    } catch (err) {
+                      setUploadProgress(prev => ({
+                        ...prev,
+                        progress: 0,
+                        currentStep: 'error',
+                        error: err.response?.data?.detail || err.message,
+                        success: false
+                      }));
+                      setError(err.response?.data?.detail || err.message);
+                      setMessage(`❌ Ошибка загрузки: ${err.response?.data?.detail || err.message}`);
+                      setMessageType('error');
+                      // НЕ закрываем модалку при ошибке - пользователь должен видеть ошибку
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  disabled={uploading}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {uploading ? 'Тест...' : 'Тест на одном кодексе'}
+                </button>
+              </div>
+
+              {uploadProgress.isUploading && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {uploadProgress.currentStep === 'starting' && 'Запуск загрузки...'}
+                      {uploadProgress.currentStep === 'testing' && 'Тестирование...'}
+                      {uploadProgress.currentStep === 'complete' && 'Завершено!'}
+                      {uploadProgress.currentStep === 'error' && 'Ошибка'}
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {uploadProgress.progress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

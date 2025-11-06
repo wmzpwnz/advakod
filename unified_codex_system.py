@@ -385,15 +385,264 @@ class UnifiedCodexSystem:
             # Даем дополнительное время для загрузки JavaScript
             time.sleep(5)
             
-            # Извлекаем текст
+            # КРИТИЧЕСКИ ВАЖНО: Кликаем на все элементы оглавления для загрузки полного текста
+            try:
+                self.logger.info("🖱️ Кликаем на элементы оглавления для загрузки полного текста...")
+                
+                # Находим и кликаем на все ссылки/элементы оглавления
+                clickable_elements = self.driver.execute_script("""
+                    // Находим все кликабельные элементы в оглавлении
+                    var elements = [];
+                    
+                    // Ищем ссылки в оглавлении
+                    var tocLinks = document.querySelectorAll('a[href*="#"], a[href*="article"], a[href*="статья"], a[href*="Статья"], a[href*="chapter"], a[href*="раздел"]');
+                    tocLinks.forEach(link => {
+                        if (link.textContent.trim().length > 5 && 
+                            (link.textContent.includes('Статья') || 
+                             link.textContent.includes('статья') ||
+                             link.textContent.includes('Глава') ||
+                             link.textContent.includes('Раздел') ||
+                             link.textContent.match(/\\d+\\./))) {
+                            elements.push(link);
+                        }
+                    });
+                    
+                    // Ищем элементы с классами оглавления
+                    var tocElements = document.querySelectorAll('[class*="toc"], [class*="content"], [class*="article"], [class*="chapter"], [id*="toc"], [id*="content"]');
+                    tocElements.forEach(el => {
+                        var links = el.querySelectorAll('a');
+                        links.forEach(link => {
+                            if (link.textContent.trim().length > 5) {
+                                elements.push(link);
+                            }
+                        });
+                    });
+                    
+                    return elements.length;
+                """)
+                
+                self.logger.info(f"📋 Найдено {clickable_elements} элементов для клика")
+                
+                # Кликаем на элементы по частям, чтобы не перегрузить страницу
+                if clickable_elements > 0:
+                    # Кликаем через JavaScript для загрузки контента
+                    self.driver.execute_script("""
+                        // Кликаем на все ссылки оглавления для загрузки полного текста
+                        var clicked = 0;
+                        var links = document.querySelectorAll('a[href*="#"], a[href*="article"], a[href*="статья"], a[href*="Статья"]');
+                        
+                        links.forEach(function(link, index) {
+                            try {
+                                var text = link.textContent.trim();
+                                if (text.length > 5 && 
+                                    (text.includes('Статья') || text.includes('статья') || 
+                                     text.includes('Глава') || text.includes('Раздел') ||
+                                     text.match(/\\d+\\./))) {
+                                    
+                                    // Прокручиваем к элементу
+                                    link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                    
+                                    // Кликаем
+                                    link.click();
+                                    clicked++;
+                                    
+                                    // Небольшая задержка между кликами
+                                    if (clicked % 10 === 0) {
+                                        // Ждем загрузки после каждых 10 кликов
+                                    }
+                                }
+                            } catch(e) {
+                                // Игнорируем ошибки клика
+                            }
+                        });
+                        
+                        return clicked;
+                    """)
+                    
+                    # Ждем загрузки контента после кликов
+                    time.sleep(10)
+                    
+                    # Скроллим страницу вниз для загрузки всего контента
+                    self.driver.execute_script("""
+                        var scrollHeight = document.body.scrollHeight;
+                        var currentPosition = 0;
+                        var scrollStep = 500;
+                        
+                        function scrollDown() {
+                            currentPosition += scrollStep;
+                            window.scrollTo(0, currentPosition);
+                            
+                            if (currentPosition < scrollHeight) {
+                                setTimeout(scrollDown, 100);
+                            }
+                        }
+                        
+                        scrollDown();
+                    """)
+                    time.sleep(5)
+                    
+                    # Скроллим обратно вверх
+                    self.driver.execute_script("window.scrollTo(0, 0);")
+                    time.sleep(2)
+                
+            except Exception as e:
+                self.logger.warning(f"⚠️ Ошибка при клике на элементы оглавления: {e}")
+            
+            # Раскрываем все скрытые элементы и iframe
+            try:
+                self.driver.execute_script("""
+                    // Раскрываем все скрытые элементы
+                    var hiddenElements = document.querySelectorAll('[style*="display: none"], [style*="display:none"], [style*="visibility: hidden"], .hidden, [class*="collapse"]');
+                    hiddenElements.forEach(el => {
+                        el.style.display = 'block';
+                        el.style.visibility = 'visible';
+                        el.style.opacity = '1';
+                    });
+                    
+                    // Раскрываем все элементы с классом expand/show
+                    var expandButtons = document.querySelectorAll('[class*="expand"], [class*="show"], [class*="open"], [onclick*="expand"]');
+                    expandButtons.forEach(btn => {
+                        try { btn.click(); } catch(e) {}
+                    });
+                    
+                    // Работаем с iframe, если есть
+                    var iframes = document.querySelectorAll('iframe');
+                    iframes.forEach(function(iframe) {
+                        try {
+                            iframe.style.display = 'block';
+                            iframe.style.visibility = 'visible';
+                        } catch(e) {}
+                    });
+                """)
+                time.sleep(3)  # Ждем раскрытия контента
+            except Exception as e:
+                self.logger.warning(f"⚠️ Ошибка раскрытия элементов: {e}")
+            
+            # Извлекаем текст улучшенным методом (включая iframe и динамический контент)
             text_content = ""
             try:
-                # Пробуем получить текст через JavaScript
-                text_content = self.driver.execute_script("return document.body.innerText;")
+                # Улучшенный метод извлечения текста через TreeWalker с поддержкой iframe
+                text_content = self.driver.execute_script("""
+                    // Функция для извлечения текста из элемента
+                    function extractTextFromElement(element) {
+                        if (!element) return '';
+                        
+                        var allTextNodes = [];
+                        var walker = document.createTreeWalker(
+                            element,
+                            NodeFilter.SHOW_TEXT,
+                            {
+                                acceptNode: function(node) {
+                                    var text = node.textContent.trim();
+                                    if (text.length < 1) return NodeFilter.FILTER_REJECT;
+                                    
+                                    var parent = node.parentElement;
+                                    if (!parent) return NodeFilter.FILTER_REJECT;
+                                    
+                                    var tagName = parent.tagName;
+                                    if (tagName === 'SCRIPT' || tagName === 'STYLE' || tagName === 'NOSCRIPT') {
+                                        return NodeFilter.FILTER_REJECT;
+                                    }
+                                    
+                                    // Пропускаем только явно служебные элементы
+                                    var classList = parent.classList;
+                                    var className = parent.className || '';
+                                    var id = parent.id || '';
+                                    
+                                    // Более мягкая фильтрация - пропускаем только явно служебные
+                                    if (classList.contains('menu') || classList.contains('navigation') || 
+                                        classList.contains('sidebar') || classList.contains('cookie') ||
+                                        classList.contains('banner') || classList.contains('toolbar') ||
+                                        className.includes('menu') || className.includes('navigation') ||
+                                        id.includes('menu') || id.includes('navigation')) {
+                                        return NodeFilter.FILTER_REJECT;
+                                    }
+                                    
+                                    return NodeFilter.FILTER_ACCEPT;
+                                }
+                            },
+                            false
+                        );
+                        
+                        var node;
+                        var lastParent = null;
+                        while (node = walker.nextNode()) {
+                            var text = node.textContent.trim();
+                            if (text && text.length > 0) {
+                                var currentParent = node.parentElement;
+                                if (lastParent && lastParent !== currentParent) {
+                                    var parentTag = currentParent.tagName;
+                                    if (parentTag === 'P' || parentTag === 'DIV' || parentTag === 'H1' || 
+                                        parentTag === 'H2' || parentTag === 'H3' || parentTag === 'H4' ||
+                                        parentTag === 'H5' || parentTag === 'H6' || parentTag === 'LI' ||
+                                        parentTag === 'ARTICLE' || parentTag === 'SECTION' ||
+                                        parentTag === 'BLOCKQUOTE' || parentTag === 'PRE') {
+                                        allTextNodes.push('\\n');
+                                    }
+                                }
+                                allTextNodes.push(text);
+                                lastParent = currentParent;
+                            }
+                        }
+                        
+                        return allTextNodes.join(' ');
+                    }
+                    
+                    var fullText = '';
+                    
+                    // 1. Извлекаем текст из основного контента
+                    var content = document.querySelector('.view-col-contaner') || 
+                                 document.querySelector('.view-col-container') ||
+                                 document.querySelector('.document-content') ||
+                                 document.querySelector('.content') ||
+                                 document.querySelector('[class*="content"]') ||
+                                 document.querySelector('[id*="content"]') ||
+                                 document.querySelector('main') ||
+                                 document.querySelector('article') ||
+                                 document.body;
+                    
+                    if (content) {
+                        fullText += extractTextFromElement(content);
+                    }
+                    
+                    // 2. Извлекаем текст из iframe (если есть)
+                    var iframes = document.querySelectorAll('iframe');
+                    iframes.forEach(function(iframe) {
+                        try {
+                            var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            if (iframeDoc && iframeDoc.body) {
+                                var iframeText = extractTextFromElement(iframeDoc.body);
+                                if (iframeText && iframeText.length > 100) {
+                                    fullText += '\\n\\n' + iframeText;
+                                }
+                            }
+                        } catch(e) {
+                            // Игнорируем ошибки доступа к iframe (CORS)
+                        }
+                    });
+                    
+                    // 3. Если текста мало, извлекаем из всего body
+                    if (fullText.length < 5000 && document.body) {
+                        var bodyText = extractTextFromElement(document.body);
+                        if (bodyText.length > fullText.length) {
+                            fullText = bodyText;
+                        }
+                    }
+                    
+                    return fullText;
+                """)
+                
                 if text_content:
-                    self.logger.info(f"✅ Текст получен через JavaScript: {len(text_content)} символов")
+                    self.logger.info(f"✅ Текст получен через TreeWalker: {len(text_content)} символов")
             except Exception as e:
                 self.logger.error(f"❌ Ошибка получения текста через JavaScript: {e}")
+                # Fallback на простой метод
+                try:
+                    text_content = self.driver.execute_script("return document.body.innerText;")
+                    if text_content:
+                        self.logger.info(f"✅ Текст получен через innerText (fallback): {len(text_content)} символов")
+                except:
+                    pass
             
             # Очищаем текст
             if text_content and len(text_content) > 1000:

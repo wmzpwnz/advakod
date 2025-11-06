@@ -2475,6 +2475,69 @@
       0 0 15px rgba(139, 92, 246, 0.3);
   }
   
+  /* Улучшенные неоновые кнопки для мобильной версии */
+  .neon-button-primary:active {
+    transform: scale(0.95) translateZ(0);
+    box-shadow: 
+      0 0 20px rgba(139, 92, 246, 0.8),
+      0 0 40px rgba(6, 182, 212, 0.6),
+      inset 0 0 20px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-interactive:active {
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 
+      0 0 12px rgba(139, 92, 246, 0.7),
+      0 0 24px rgba(139, 92, 246, 0.5),
+      0 0 36px rgba(6, 182, 212, 0.3);
+    transform: scale(0.96);
+  }
+  
+  /* Кнопки чата на мобильных с неоном */
+  @media (max-width: 768px) {
+    .neon-button-primary {
+      min-height: 48px;
+      min-width: 48px;
+      padding: 14px;
+      font-size: 16px;
+      box-shadow: 
+        0 0 10px rgba(139, 92, 246, 0.4),
+        0 0 20px rgba(139, 92, 246, 0.2),
+        0 0 30px rgba(6, 182, 212, 0.1);
+    }
+    
+    .neon-interactive {
+      min-height: 48px;
+      min-width: 48px;
+      padding: 14px;
+    }
+    
+    /* Усиленное свечение при нажатии */
+    .neon-button-primary:active,
+    .neon-interactive:active {
+      animation: neonPulseMobile 0.3s ease-out;
+    }
+    
+    @keyframes neonPulseMobile {
+      0% {
+        box-shadow: 
+          0 0 10px rgba(139, 92, 246, 0.4),
+          0 0 20px rgba(139, 92, 246, 0.2);
+      }
+      50% {
+        box-shadow: 
+          0 0 20px rgba(139, 92, 246, 0.8),
+          0 0 40px rgba(6, 182, 212, 0.6),
+          0 0 60px rgba(139, 92, 246, 0.4);
+      }
+      100% {
+        box-shadow: 
+          0 0 10px rgba(139, 92, 246, 0.4),
+          0 0 20px rgba(139, 92, 246, 0.2);
+      }
+    }
+  }
+  
   /* Remove transform on hover, only on active */
   .hover\:scale-105:hover {
     transform: none;

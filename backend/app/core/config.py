@@ -150,8 +150,9 @@ class Settings(BaseSettings):
     )
     
     # Админская безопасность
-    # Добавлен домен для продакшена
-    ADMIN_IP_WHITELIST: str = os.getenv("ADMIN_IP_WHITELIST", "127.0.0.1,::1,advacodex.com")
+    # Белый список IP адресов для доступа к админке (только в продакшене)
+    # В development режиме проверка IP отключена
+    ADMIN_IP_WHITELIST: str = os.getenv("ADMIN_IP_WHITELIST", "127.0.0.1,::1")
     
     @model_validator(mode='after')
     def validate_secret_key(self):

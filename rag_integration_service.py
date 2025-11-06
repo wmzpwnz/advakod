@@ -6,6 +6,7 @@
 import json
 import os
 import re
+import hashlib
 from datetime import datetime
 from pathlib import Path
 
@@ -168,12 +169,26 @@ class RAGIntegrationService:
                     'is_valid': validation_result.get('is_valid', False)
                 })
             
-            # Создаем чанки
-            document_id = f"doc_{self.processed_documents}_{file_path.stem}"
-            chunks = self.create_chunks(text, document_id, metadata)
+            # Создаем уникальный document_id на основе имени файла и его содержимого
+            # Это предотвращает дублирование при повторной обработке
+            content_hash = hashlib.md5(html_content.encode('utf-8')).hexdigest()[:8]
+            document_id = f"html_{file_path.stem}_{content_hash}"
             
-            # Сохраняем обработанный документ
+            # Проверяем, не был ли документ уже обработан
             processed_file = self.output_dir / "processed_documents" / f"{document_id}.json"
+            if processed_file.exists():
+                self.log(f"⏭️ Документ {file_path.name} уже обработан, пропускаем", "INFO")
+                with open(processed_file, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+                return {
+                    'document_id': document_id,
+                    'chunks_count': len(existing_data.get('chunks', [])),
+                    'text_length': existing_data.get('text_length', 0),
+                    'processed_file': str(processed_file),
+                    'skipped': True
+                }
+            
+            chunks = self.create_chunks(text, document_id, metadata)
             with open(processed_file, 'w', encoding='utf-8') as f:
                 json.dump({
                     'document_id': document_id,
@@ -247,12 +262,26 @@ class RAGIntegrationService:
                     'is_valid': validation_result.get('is_valid', False)
                 })
             
-            # Создаем чанки
-            document_id = f"pdf_{self.processed_documents}_{file_path.stem}"
-            chunks = self.create_chunks(text, document_id, metadata)
+            # Создаем уникальный document_id на основе имени файла и его содержимого
+            # Это предотвращает дублирование при повторной обработке
+            file_hash = hashlib.md5(content).hexdigest()[:8]
+            document_id = f"pdf_{file_path.stem}_{file_hash}"
             
-            # Сохраняем обработанный документ
+            # Проверяем, не был ли документ уже обработан
             processed_file = self.output_dir / "processed_documents" / f"{document_id}.json"
+            if processed_file.exists():
+                self.log(f"⏭️ Документ {file_path.name} уже обработан, пропускаем", "INFO")
+                with open(processed_file, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+                return {
+                    'document_id': document_id,
+                    'chunks_count': len(existing_data.get('chunks', [])),
+                    'text_length': existing_data.get('text_length', 0),
+                    'processed_file': str(processed_file),
+                    'skipped': True
+                }
+            
+            chunks = self.create_chunks(text, document_id, metadata)
             with open(processed_file, 'w', encoding='utf-8') as f:
                 json.dump({
                     'document_id': document_id,

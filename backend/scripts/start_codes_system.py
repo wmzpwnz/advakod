@@ -8,6 +8,7 @@ import os
 import time
 import signal
 import logging
+import asyncio
 from pathlib import Path
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -58,7 +59,8 @@ class CodesSystemManager:
         logger.info("📥 Запуск цикла скачивания...")
         
         try:
-            success_count, total_count = self.downloader.download_all_codexes()
+            # download_all_codexes - асинхронная функция, нужно использовать asyncio.run()
+            success_count, total_count = asyncio.run(self.downloader.download_all_codexes())
             logger.info(f"✅ Цикл скачивания завершен: {success_count}/{total_count}")
             return success_count > 0
         except Exception as e:
@@ -70,15 +72,17 @@ class CodesSystemManager:
         logger.info("🔗 Запуск цикла интеграции...")
         
         try:
-            result = self.rag_integration.integrate_all_codexes()
-            if result['success']:
-                logger.info(f"✅ Цикл интеграции завершен: {result['processed_files']} файлов")
+            # integrate_all_codexes - асинхронная функция, нужно использовать asyncio.run()
+            result = asyncio.run(self.rag_integration.integrate_all_codexes())
+            if result.get('success', False):
+                logger.info(f"✅ Цикл интеграции завершен: {result.get('processed_files', 0)} файлов")
                 return True
             else:
-                logger.error(f"❌ Ошибка интеграции: {result['error']}")
+                error_msg = result.get('error', 'Неизвестная ошибка')
+                logger.error(f"❌ Ошибка интеграции: {error_msg}")
                 return False
         except Exception as e:
-            logger.error(f"❌ Ошибка в цикле интеграции: {e}")
+            logger.error(f"❌ Ошибка в цикле интеграции: {e}", exc_info=True)
             return False
 
     def run_monitoring_cycle(self):

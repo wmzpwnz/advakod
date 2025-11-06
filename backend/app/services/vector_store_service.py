@@ -127,11 +127,23 @@ class VectorStoreService:
             try:
                 self.collection = self.client.get_collection(name=self.collection_name)
                 logger.info(f"✅ Найдена существующая коллекция: {self.collection_name}")
+                # Проверяем, есть ли embedding function у существующей коллекции
+                # Если коллекция была создана без embedding function, ChromaDB требует embeddings при добавлении
             except Exception:
+                # Используем встроенную embedding function ChromaDB
+                try:
+                    from chromadb.utils import embedding_functions
+                    default_ef = embedding_functions.DefaultEmbeddingFunction()
+                    logger.info("✅ Используем DefaultEmbeddingFunction для новой коллекции")
+                except (ImportError, AttributeError) as e:
+                    # Если не удалось импортировать, используем None
+                    default_ef = None
+                    logger.warning(f"⚠️ DefaultEmbeddingFunction не доступна ({e}), коллекция будет создана без embedding function")
+                
                 self.collection = self.client.create_collection(
                     name=self.collection_name,
                     metadata={"description": "Коллекция юридических документов для RAG"},
-                    embedding_function=None  # Используем встроенную модель ChromaDB
+                    embedding_function=default_ef
                 )
                 logger.info(f"✅ Создана новая коллекция: {self.collection_name}")
             
@@ -214,7 +226,16 @@ class VectorStoreService:
         # Allowed metadata keys to prevent injection
         ALLOWED_KEYS = {
             "source", "article", "valid_from", "valid_to", "edition",
-            "title", "filename", "content_length", "added_at", "part", "item"
+            "title", "filename", "content_length", "added_at", "part", "item",
+            # Ключи для группировки документов и чанков
+            "document_id", "chunk_index", "chunk_length", "is_chunk",
+            # Ключи для кодексов
+            "codex_name", "document_name", "document_type", "type",
+            # Дополнительные метаданные
+            "file_size", "size", "file_hash", "file_extension", "processed_at",
+            "chunks_count", "total_length", "validation_confidence", "legal_score",
+            "is_validated", "version", "status", "is_draft", "pages",
+            "source_path", "language", "method_used", "upload_date"
         }
         
         sanitized = {}

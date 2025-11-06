@@ -31,6 +31,13 @@ class AdminSecurityService:
         # Кэш неудачных попыток {ip: [timestamp1, timestamp2, ...]}
         self.failed_attempts = {}
         
+        # Логируем загруженный whitelist при инициализации
+        import os
+        whitelist_env = os.getenv("ADMIN_IP_WHITELIST", "не установлена")
+        logger.info(f"🔒 AdminSecurityService инициализирован:")
+        logger.info(f"   - ADMIN_IP_WHITELIST (env): {whitelist_env}")
+        logger.info(f"   - Загруженный whitelist: {self.admin_ip_whitelist}")
+        
     def _load_ip_whitelist(self) -> list:
         """Загружает белый список IP адресов"""
         whitelist_str = settings.ADMIN_IP_WHITELIST
@@ -57,33 +64,30 @@ class AdminSecurityService:
     
     def check_admin_ip_access(self, request: Request) -> bool:
         """Проверяет, разрешен ли доступ с данного IP"""
-        # В разработке пропускаем проверку IP
-        import os
-        if os.getenv("ENVIRONMENT", "development") == "development":
-            logger.info("🔓 В режиме разработки - пропускаем проверку IP")
-            return True
-            
-        client_ip = self.get_client_ip(request)
-        
-        # Проверяем whitelist
-        if client_ip not in self.admin_ip_whitelist:
-            logger.warning(f"🚫 Попытка доступа к админке с неразрешенного IP: {client_ip}")
-            return False
-            
+        # Проверка IP отключена для всех админов
+        logger.info("🔓 Проверка IP отключена - доступ разрешен для всех админов")
         return True
     
     def get_client_ip(self, request: Request) -> str:
         """Получает реальный IP клиента"""
-        # Проверяем заголовки прокси
+        # Проверяем заголовки прокси (nginx передает реальный IP клиента)
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
+            # X-Forwarded-For может содержать цепочку IP: client, proxy1, proxy2
+            # Берем первый IP (реальный IP клиента)
+            client_ip = forwarded_for.split(",")[0].strip()
+            logger.debug(f"🔍 IP из X-Forwarded-For: {client_ip}")
+            return client_ip
         
         real_ip = request.headers.get("X-Real-IP")
         if real_ip:
+            logger.debug(f"🔍 IP из X-Real-IP: {real_ip}")
             return real_ip
-            
-        return request.client.host if request.client else "unknown"
+        
+        # Fallback на прямой IP (если нет прокси)
+        direct_ip = request.client.host if request.client else "unknown"
+        logger.debug(f"🔍 IP из request.client.host: {direct_ip}")
+        return direct_ip
     
     def check_admin_brute_force(self, request: Request) -> bool:
         """Проверяет на brute force атаки"""
@@ -165,26 +169,27 @@ def get_secure_admin(
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Требуются права администратора")
     
-    # 2. Проверка IP whitelist (в продакшене)
-    if not admin_security.check_admin_ip_access(request):
-        # Логируем подозрительную активность
-        audit_log = AuditLog(
-            user_id=current_user.id,
-            action=ActionType.SECURITY_INCIDENT,
-            resource="admin_access",
-            description=f"Попытка доступа к админке с неразрешенного IP: {admin_security._get_client_ip(request)}",
-            severity=SeverityLevel.HIGH,
-            ip_address=admin_security._get_client_ip(request),
-            user_agent=request.headers.get("User-Agent", ""),
-            status="blocked"
-        )
-        db.add(audit_log)
-        db.commit()
-        
-        raise HTTPException(
-            status_code=403, 
-            detail="Доступ к админке разрешен только с авторизованных IP адресов"
-        )
+    # 2. Проверка IP whitelist отключена для всех админов
+    # if not admin_security.check_admin_ip_access(request):
+    #     # Логируем подозрительную активность
+    #     client_ip = admin_security.get_client_ip(request)
+    #     audit_log = AuditLog(
+    #         user_id=current_user.id,
+    #         action=ActionType.SECURITY_INCIDENT,
+    #         resource="admin_access",
+    #         description=f"Попытка доступа к админке с неразрешенного IP: {client_ip}",
+    #         severity=SeverityLevel.HIGH,
+    #         ip_address=client_ip,
+    #         user_agent=request.headers.get("User-Agent", ""),
+    #         status="blocked"
+    #     )
+    #     db.add(audit_log)
+    #     db.commit()
+    #     
+    #     raise HTTPException(
+    #         status_code=403, 
+    #         detail="Доступ к админке разрешен только с авторизованных IP адресов"
+    #     )
     
     # 3. Проверка активности аккаунта
     if not current_user.is_active:

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ErrorMessage from './ErrorMessage';
 import AIThinkingIndicator from './AIThinkingIndicator';
@@ -20,113 +20,199 @@ const StatusNotificationSystem = ({
   const [notifications, setNotifications] = useState([]);
   const [connectionError, setConnectionError] = useState(null);
   const [modelError, setModelError] = useState(null);
-
-  // Добавление уведомления
-  const addNotification = useCallback((notification) => {
-    const id = Date.now() + Math.random();
-    const newNotification = {
-      id,
-      timestamp: Date.now(),
-      autoHide: true,
-      duration: 5000,
-      ...notification
-    };
-
-    setNotifications(prev => [...prev, newNotification]);
-
-    // Автоматическое скрытие
-    if (newNotification.autoHide) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, newNotification.duration);
-    }
-
-    return id;
-  }, []);
+  const lastNotificationRef = useRef({});
+  const debounceTimersRef = useRef({});
 
   // Удаление уведомления
   const removeNotification = useCallback((id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
-  // Мониторинг состояния WebSocket
+  // Добавление уведомления с дедупликацией и дебаунсингом
+  const addNotification = useCallback((notification) => {
+    // Создаем ключ для дедупликации на основе типа и сообщения
+    const notificationKey = `${notification.type}_${notification.title}_${notification.message}`;
+    
+    // Проверяем, не было ли уже показано такое же уведомление недавно
+    const lastShown = lastNotificationRef.current[notificationKey];
+    const now = Date.now();
+    if (lastShown && (now - lastShown) < 5000) {
+      // Такое же уведомление уже было показано менее 5 секунд назад - пропускаем
+      return null;
+    }
+
+    // Дебаунсинг для частых изменений состояния
+    if (debounceTimersRef.current[notificationKey]) {
+      clearTimeout(debounceTimersRef.current[notificationKey]);
+    }
+
+    const timerId = setTimeout(() => {
+      const id = Date.now() + Math.random();
+      const newNotification = {
+        id,
+        timestamp: Date.now(),
+        autoHide: true,
+        duration: 5000,
+        ...notification,
+        key: notificationKey
+      };
+
+      setNotifications(prev => {
+        // Удаляем старые уведомления того же типа и ключа
+        const filtered = prev.filter(n => 
+          !(n.key === notificationKey && n.type === notification.type)
+        );
+        return [...filtered, newNotification];
+      });
+
+      lastNotificationRef.current[notificationKey] = now;
+
+      // Автоматическое скрытие
+      if (newNotification.autoHide) {
+        setTimeout(() => {
+          removeNotification(id);
+        }, newNotification.duration);
+      }
+    }, notification.type === 'error' ? 500 : 100); // Дебаунсинг для ошибок 500мс, для остальных 100мс
+
+    debounceTimersRef.current[notificationKey] = timerId;
+
+    return notificationKey;
+  }, [removeNotification]);
+
+  // Очистка таймеров при размонтировании
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimersRef.current).forEach(timer => {
+        if (timer) clearTimeout(timer);
+      });
+    };
+  }, []);
+
+  // Мониторинг состояния WebSocket с улучшенной обработкой
   useEffect(() => {
     if (!websocket) return;
 
+    let stateChangeTimer = null;
+    let errorTimer = null;
+    let lastState = null;
+    let errorCount = 0;
+
     const handleStateChange = (state) => {
-      switch (state) {
-        case 'connected':
-          setConnectionError(null);
-          addNotification({
-            type: 'success',
-            title: 'Соединение восстановлено',
-            message: 'Связь с сервером успешно установлена',
-            duration: 3000
-          });
-          break;
-        
-        case 'reconnecting':
-          addNotification({
-            type: 'info',
-            title: 'Переподключение',
-            message: 'Попытка восстановить соединение с сервером...',
-            autoHide: false
-          });
-          break;
-        
-        case 'failed':
-          const error = { code: 1006, message: 'Не удалось подключиться к серверу' };
-          setConnectionError(error);
-          addNotification({
-            type: 'error',
-            title: 'Ошибка соединения',
-            message: 'Не удалось подключиться к серверу. Проверьте интернет-соединение.',
-            autoHide: false,
-            actions: [
-              {
-                label: 'Переподключить',
-                action: onForceReconnect || onReconnect,
-                primary: true
-              }
-            ]
-          });
-          break;
+      // Пропускаем повторные изменения на то же состояние
+      if (lastState === state) return;
+      lastState = state;
+
+      // Очищаем предыдущий таймер
+      if (stateChangeTimer) {
+        clearTimeout(stateChangeTimer);
       }
+
+      // Дебаунсинг изменений состояния
+      stateChangeTimer = setTimeout(() => {
+        switch (state) {
+          case 'connected':
+            setConnectionError(null);
+            errorCount = 0; // Сбрасываем счетчик ошибок при успешном подключении
+            // Удаляем все предыдущие уведомления об ошибках соединения
+            setNotifications(prev => prev.filter(n => 
+              !(n.type === 'error' && n.title === 'Ошибка соединения')
+            ));
+            addNotification({
+              type: 'success',
+              title: 'Соединение восстановлено',
+              message: 'Связь с сервером успешно установлена',
+              duration: 3000
+            });
+            break;
+          
+          case 'reconnecting':
+            // Показываем уведомление о переподключении только один раз
+            addNotification({
+              type: 'info',
+              title: 'Переподключение',
+              message: 'Попытка восстановить соединение с сервером...',
+              autoHide: false
+            });
+            break;
+          
+          case 'failed':
+            errorCount++;
+            // Показываем ошибку только если не было слишком много попыток
+            if (errorCount <= 3) {
+              const error = { code: 1006, message: 'Не удалось подключиться к серверу' };
+              setConnectionError(error);
+              // Удаляем старые уведомления об ошибках перед добавлением нового
+              setNotifications(prev => prev.filter(n => 
+                !(n.type === 'error' && n.title === 'Ошибка соединения')
+              ));
+              addNotification({
+                type: 'error',
+                title: 'Ошибка соединения',
+                message: 'Не удалось подключиться к серверу. Проверьте интернет-соединение.',
+                autoHide: false,
+                actions: [
+                  {
+                    label: 'Переподключить',
+                    action: onForceReconnect || onReconnect,
+                    primary: true
+                  }
+                ]
+              });
+            }
+            break;
+        }
+      }, 300); // Дебаунсинг 300мс
     };
 
     const handleError = (error) => {
       console.error('WebSocket error:', error);
       
-      let errorNotification = {
-        type: 'error',
-        title: 'Ошибка соединения',
-        message: 'Произошла ошибка при работе с сервером',
-        autoHide: false
-      };
-
-      if (error.code === 1008) {
-        errorNotification = {
-          type: 'error',
-          title: 'Ошибка аутентификации',
-          message: 'Ваша сессия истекла. Необходимо войти в систему заново.',
-          autoHide: false,
-          actions: [
-            {
-              label: 'Войти',
-              action: () => window.location.href = '/login',
-              primary: true
-            }
-          ]
-        };
+      // Очищаем предыдущий таймер ошибок
+      if (errorTimer) {
+        clearTimeout(errorTimer);
       }
 
-      addNotification(errorNotification);
+      // Дебаунсинг ошибок
+      errorTimer = setTimeout(() => {
+        let errorNotification = {
+          type: 'error',
+          title: 'Ошибка соединения',
+          message: 'Произошла ошибка при работе с сервером',
+          autoHide: false
+        };
+
+        if (error.code === 1008) {
+          errorNotification = {
+            type: 'error',
+            title: 'Ошибка аутентификации',
+            message: 'Ваша сессия истекла. Необходимо войти в систему заново.',
+            autoHide: false,
+            actions: [
+              {
+                label: 'Войти',
+                action: () => window.location.href = '/login',
+                primary: true
+              }
+            ]
+          };
+        }
+
+        // Удаляем старые уведомления того же типа перед добавлением нового
+        setNotifications(prev => prev.filter(n => 
+          !(n.type === 'error' && n.title === errorNotification.title)
+        ));
+
+        addNotification(errorNotification);
+      }, 500); // Дебаунсинг ошибок 500мс
     };
 
     websocket.on('stateChange', handleStateChange);
     websocket.on('error', handleError);
 
     return () => {
+      if (stateChangeTimer) clearTimeout(stateChangeTimer);
+      if (errorTimer) clearTimeout(errorTimer);
       websocket.off('stateChange', handleStateChange);
       websocket.off('error', handleError);
     };

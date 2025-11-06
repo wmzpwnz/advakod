@@ -39,5 +39,5 @@ RUN useradd -m -u 1000 codesdownloader && \
 
 USER codesdownloader
 
-# Команда по умолчанию
-CMD ["python", "/app/scripts/simple_codes_test.py"]
+# Команда по умолчанию - запускаем систему кодексов в фоновом режиме (без интерактивного ввода)
+CMD ["python", "-c", "import sys; sys.path.insert(0, '/app'); from scripts.start_codes_system import CodesSystemManager; manager = CodesSystemManager(); manager.initialize_system(); manager.run_system()"]

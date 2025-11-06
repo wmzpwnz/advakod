@@ -15,13 +15,27 @@ logger = logging.getLogger(__name__)
 
 class CodesMonitor:
     def __init__(self, codes_dir: str = "downloaded_codexes"):
-        self.codes_dir = Path(codes_dir)
-        self.downloader = CodesDownloader(codes_dir)
-        self.rag_integration = CodesRAGIntegration(codes_dir)
+        import os
+        # Используем абсолютный путь внутри контейнера
+        if not os.path.isabs(codes_dir):
+            base_dir = os.getenv("DATA_DIR", "/app/data")
+            self.codes_dir = Path(base_dir) / codes_dir
+        else:
+            self.codes_dir = Path(codes_dir)
+        
+        self.downloader = CodesDownloader(str(self.codes_dir))
+        self.rag_integration = CodesRAGIntegration(str(self.codes_dir))
         
         # Директория для логов мониторинга
-        self.logs_dir = Path("monitoring/logs")
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_path = Path("monitoring/logs")
+        try:
+            logs_path.mkdir(parents=True, exist_ok=True)
+            self.logs_dir = logs_path
+        except (PermissionError, OSError):
+            import tempfile
+            self.logs_dir = Path(tempfile.gettempdir()) / "monitoring" / "logs"
+            self.logs_dir.mkdir(parents=True, exist_ok=True)
+            logger.warning(f"⚠️ Не удалось создать директорию для логов, используем временную: {self.logs_dir}")
 
     def get_system_status(self) -> Dict:
         """Возвращает общий статус системы кодексов"""

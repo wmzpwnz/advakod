@@ -80,9 +80,60 @@ class SimpleExpertRAG:
             # Создаем директорию, если она не существует
             os.makedirs(os.path.dirname(self.persistence_file), exist_ok=True)
             
+            # Конвертируем документы в сериализуемый формат
+            serializable_documents = {}
+            for doc_id, doc_info in self.documents.items():
+                # Обрабатываем метаданные
+                metadata = doc_info.get("metadata")
+                if isinstance(metadata, LegalMetadata):
+                    metadata_dict = metadata.to_dict()
+                elif hasattr(metadata, "to_dict"):
+                    metadata_dict = metadata.to_dict()
+                elif isinstance(metadata, dict):
+                    metadata_dict = metadata
+                else:
+                    # Если это не словарь и не LegalMetadata, пытаемся преобразовать
+                    metadata_dict = {"source": str(metadata)} if metadata else {}
+                
+                serializable_documents[doc_id] = {
+                    "metadata": metadata_dict,
+                    "chunks": doc_info.get("chunks", []),
+                    "total_chunks": doc_info.get("total_chunks", 0)
+                }
+            
+            # Конвертируем чанки в сериализуемый формат
+            serializable_chunks = {}
+            for chunk_id, chunk in self.chunks.items():
+                # Проверяем, является ли chunk объектом LegalChunk или словарем
+                if isinstance(chunk, dict):
+                    # Если это уже словарь (загружен из файла), используем его как есть
+                    serializable_chunks[chunk_id] = chunk
+                else:
+                    # Если это объект LegalChunk, конвертируем в словарь
+                    # Обрабатываем метаданные чанка
+                    chunk_metadata = getattr(chunk, 'metadata', None)
+                    if isinstance(chunk_metadata, LegalMetadata):
+                        chunk_metadata_dict = chunk_metadata.to_dict()
+                    elif hasattr(chunk_metadata, "to_dict"):
+                        chunk_metadata_dict = chunk_metadata.to_dict()
+                    elif isinstance(chunk_metadata, dict):
+                        chunk_metadata_dict = chunk_metadata
+                    else:
+                        chunk_metadata_dict = {"source": str(chunk_metadata)} if chunk_metadata else {}
+                    
+                    serializable_chunks[chunk_id] = {
+                        "id": getattr(chunk, 'id', chunk_id),
+                        "content": getattr(chunk, 'content', ''),
+                        "metadata": chunk_metadata_dict,
+                        "token_count": getattr(chunk, 'token_count', 0),
+                        "chunk_index": getattr(chunk, 'chunk_index', 0),
+                        "parent_doc_id": getattr(chunk, 'parent_doc_id', ''),
+                        "neighbors": getattr(chunk, 'neighbors', []) if getattr(chunk, 'neighbors', None) else []
+                    }
+            
             data = {
-                "documents": self.documents,
-                "chunks": self.chunks,
+                "documents": serializable_documents,
+                "chunks": serializable_chunks,
                 "saved_at": datetime.now().isoformat()
             }
             

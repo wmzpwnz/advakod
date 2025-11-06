@@ -20,10 +20,11 @@ services:
       - advakod_default
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
 
   # Backend Server
   backend:
@@ -47,7 +48,7 @@ services:
       - REDIS_URL=redis://advakod_redis:6379
       - CORS_ORIGINS=https://advacodex.com,https://www.advacodex.com
       - TRUSTED_HOSTS=advacodex.com,*.advacodex.com,advakod_backend,backend,nginx
-      - ADMIN_IP_WHITELIST=31.130.145.75,193.233.106.104,nginx,advakod_nginx
+      - ADMIN_IP_WHITELIST=31.130.145.75,193.233.106.104,193.233.106.124,nginx,advakod_nginx
       - VISTRAL_MODEL_PATH=/opt/advakod/models/vistral/Vistral-24B-Instruct-Q5_0.gguf
       - VISTRAL_N_CTX=4096
       - VISTRAL_N_THREADS=6
@@ -67,6 +68,7 @@ services:
       - ./static:/app/static
       - ./media:/app/media
       - /opt/advakod/models:/opt/advakod/models:ro
+      - codes_downloads:/app/data/codes_downloads
     depends_on:
       - postgres
       - qdrant
@@ -115,12 +117,18 @@ services:
     networks:
       - advakod_default
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.core.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Celery Beat (Scheduler)
   celery_beat:
     build: ./backend
     container_name: advakod_celery_beat
-    command: celery -A app.core.celery_app beat --loglevel=info
+    command: sh -c "mkdir -p /tmp && celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule"
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@advakod_postgres:5432/advakod_db
@@ -194,10 +202,11 @@ services:
       - advakod_default
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://qdrant:6333/collections"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:6333/health || curl -f http://127.0.0.1:6333/health || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 3
+      timeout: 15s
+      retries: 5
+      start_period: 30s
 
   # Redis Cache
   redis:
@@ -235,6 +244,8 @@ services:
       - POSTGRES_DB=codes_db
       - POSTGRES_USER=codes_user
       - POSTGRES_PASSWORD=codes_password
+    volumes:
+      - codes_downloads:/app/data/codes_downloads
     depends_on:
       - postgres-codes
     networks:
@@ -266,6 +277,7 @@ volumes:
   postgres_data:
   postgres_codes_data:
   qdrant_data:
+  codes_downloads:
 
 networks:
   advakod_default:

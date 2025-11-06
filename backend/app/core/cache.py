@@ -1,6 +1,7 @@
 import json
 import hashlib
 import logging
+import os
 from typing import Any, Optional, Union, Dict
 from datetime import datetime, timedelta
 import asyncio
@@ -68,8 +69,8 @@ class InMemoryCache:
 class CacheService:
     """Сервис кэширования с поддержкой Redis и fallback на in-memory"""
     
-    def __init__(self, redis_url: str = "redis://localhost:6379"):
-        self.redis_url = redis_url
+    def __init__(self, redis_url: Optional[str] = None):
+        self.redis_url = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379")
         self.redis_client = None
         self.in_memory_cache = InMemoryCache()
         self._initialized = False

@@ -371,14 +371,17 @@ class DocumentService:
                 chunk_metadata.update({
                     "chunk_index": int(i),
                     "chunk_length": int(len(chunk)),
-                    "is_chunk": True
+                    "is_chunk": True,
+                    "document_id": document_id  # ВАЖНО: устанавливаем общий document_id для всех чанков
                 })
                 
                 # Фильтруем None значения из метаданных
                 chunk_metadata = {k: v for k, v in chunk_metadata.items() if v is not None}
                 
+                # chunk_id - уникальный ID для ChromaDB (для каждого чанка свой)
+                # document_id - общий ID для группировки (одинаковый для всех чанков документа)
                 chunk_id = f"{file_hash}_{i}"
-                logger.info(f"Добавляем чанк {i+1}/{len(chunks)}: {chunk_id}")
+                logger.info(f"Добавляем чанк {i+1}/{len(chunks)}: chunk_id={chunk_id}, document_id={document_id}")
                 
                 # Проверяем готовность векторной БД перед каждым добавлением
                 if not vector_store_service.is_ready():
@@ -388,7 +391,7 @@ class DocumentService:
                 success = vector_store_service.add_document(
                     content=chunk,
                     metadata=chunk_metadata,
-                    document_id=chunk_id
+                    document_id=chunk_id  # chunk_id используется как ID записи в ChromaDB
                 )
                 logger.info(f"Результат добавления чанка {i+1}: {success}")
                 

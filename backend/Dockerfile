@@ -1,13 +1,32 @@
 # Multi-stage build для оптимизации размера образа
 FROM python:3.11-slim as base
 
-# Устанавливаем системные зависимости
+# Устанавливаем системные зависимости (включая Chrome для Selenium)
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
     libgomp1 \
+    wget \
+    gnupg \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем Chrome для Selenium (новый метод без apt-key)
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем ChromeDriver (используем chrome-for-testing)
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1) \
+    && wget -O /tmp/chromedriver.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION})/linux64/chromedriver-linux64.zip" 2>/dev/null || \
+    wget -O /tmp/chromedriver.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/120.0.6099.109/linux64/chromedriver-linux64.zip" \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/bin/chromedriver || mv /tmp/chromedriver /usr/bin/chromedriver \
+    && rm -rf /tmp/chromedriver* \
+    && chmod +x /usr/bin/chromedriver
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -22,11 +41,30 @@ RUN pip install --no-cache-dir llama-cpp-python --extra-index-url https://abetle
 # Production stage
 FROM python:3.11-slim as production
 
-# Устанавливаем только runtime зависимости
+# Устанавливаем только runtime зависимости (включая Chrome)
 RUN apt-get update && apt-get install -y \
     curl \
     libgomp1 \
+    wget \
+    gnupg \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем Chrome для Selenium (новый метод без apt-key)
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем ChromeDriver (используем chrome-for-testing)
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1) \
+    && wget -O /tmp/chromedriver.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION})/linux64/chromedriver-linux64.zip" 2>/dev/null || \
+    wget -O /tmp/chromedriver.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/120.0.6099.109/linux64/chromedriver-linux64.zip" \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/bin/chromedriver || mv /tmp/chromedriver /usr/bin/chromedriver \
+    && rm -rf /tmp/chromedriver* \
+    && chmod +x /usr/bin/chromedriver
 
 # Создаем пользователя для безопасности
 RUN useradd --create-home --shell /bin/bash advakod

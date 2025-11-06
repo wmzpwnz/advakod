@@ -267,27 +267,37 @@ const Chat = () => {
       
       setLastError(error);
       
-      // Показываем пользователю информативное сообщение об ошибке
-      showError(error, {
-        autoHide: false,
-        actions: [
-          {
-            label: 'Повторить',
-            action: () => sendMessage(),
-            primary: true
-          }
-        ]
-      });
+      // Показываем пользователю информативное сообщение об ошибке только один раз
+      // Статус-система уже покажет уведомление, поэтому здесь мы только логируем
+      console.error('Ошибка отправки сообщения:', error);
+      
+      // Показываем через статус-систему только если это не была отмена
+      if (!isAborted) {
+        showError(error, {
+          autoHide: false,
+          actions: [
+            {
+              label: 'Повторить',
+              action: () => sendMessage(),
+              primary: true
+            }
+          ]
+        });
+      }
       
       // Также добавляем сообщение об ошибке в чат для контекста
       let errorText = 'Произошла ошибка при отправке сообщения.';
       
-      if (error.response) {
+      // Проверяем на таймаут по сообщению об ошибке
+      const errorMessage = String(error?.message || error || '').toLowerCase();
+      if (errorMessage.includes('timeout') || errorMessage.includes('[timeout]')) {
+        errorText = 'Превышено время ожидания ответа (300 секунд). Модель работает дольше обычного. Рекомендации:\n• Упростите вопрос\n• Разбейте сложный вопрос на несколько простых\n• Попробуйте позже, когда нагрузка на сервер будет меньше';
+      } else if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
         
         if (status === 408) {
-          errorText = 'Превышено время ожидания ответа. Попробуйте упростить вопрос.';
+          errorText = 'Превышено время ожидания ответа. Попробуйте упростить вопрос или разбить его на части.';
         } else if (status === 503) {
           errorText = 'Сервер временно перегружен. Подождите немного и попробуйте снова.';
         } else if (status === 401) {
@@ -303,14 +313,14 @@ const Chat = () => {
         errorText = 'Не удалось соединиться с сервером. Проверьте подключение к интернету.';
       }
       
-      const errorMessage = {
+      const errorMsg = {
         id: `error_${Date.now()}`,
         type: 'error',
         content: errorText,
         timestamp: new Date().toISOString(),
         error: error
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMsg]);
     }
   };
 
@@ -323,9 +333,9 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Боковая панель с историей */}
-      <div className={`${isHistoryCollapsed ? 'w-16' : 'w-80'} transition-all duration-300 bg-white border-r border-gray-200`}>
+      <div className={`${isHistoryCollapsed ? 'w-16' : 'w-80'} transition-all duration-300 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700`}>
         <ChatHistory 
           isCollapsed={isHistoryCollapsed}
           onToggle={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
@@ -333,43 +343,35 @@ const Chat = () => {
       </div>
 
       {/* Основной чат */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Заголовок */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-600 dark:bg-primary-500 rounded-full flex items-center justify-center neon-glow-purple">
                 <Bot className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Чат с АДВАКОД</h1>
-                <p className="text-sm text-gray-600 mt-1">Ваш персональный AI юрист-консультант</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <WebSocketStatus 
-                    websocket={websocket}
-                    onReconnect={forceReconnect}
-                    className="flex-1"
-                  />
-                  
-                  {/* Кнопка переподключения для критических ситуаций */}
-                  {(!isConnected && connectionState === 'failed') && (
-                    <button
-                      onClick={forceReconnect}
-                      className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      title="Переподключиться к серверу"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      <span>Переподключить</span>
-                    </button>
-                  )}
-                </div>
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Чат с АДВАКОД</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Ваш персональный AI юрист-консультант</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
+              {/* Кнопка переподключения для критических ситуаций */}
+              {(!isConnected && connectionState === 'failed') && (
+                <button
+                  onClick={forceReconnect}
+                  className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-600 dark:bg-primary-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-primary-700 transition-colors neon-button-primary"
+                  title="Переподключиться к серверу"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="hidden sm:inline">Переподключить</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowRAGSettings(!showRAGSettings)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all z-50 relative pointer-events-auto neon-interactive"
                 title="Настройки RAG"
               >
                 <Settings className="w-5 h-5" />
@@ -380,7 +382,7 @@ const Chat = () => {
 
         {/* Область сообщений */}
         <div
-          className="flex-1 overflow-y-auto p-6 space-y-4"
+          className="flex-1 overflow-y-auto p-6 space-y-4 dark:bg-gray-900"
           ref={messagesContainerRef}
           onScroll={handleContainerScroll}
         >
@@ -389,7 +391,7 @@ const Chat = () => {
               <div className={`max-w-3xl ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
                 <div className={`flex items-start space-x-3 ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.type === 'user' ? 'bg-blue-600' : 'bg-gray-600'
+                    message.type === 'user' ? 'bg-blue-600 dark:bg-primary-600 neon-glow-cyan' : 'bg-gray-600 dark:bg-gray-700 neon-glow-purple'
                   }`}>
                     {message.type === 'user' ? (
                       <User className="w-4 h-4 text-white" />
@@ -400,10 +402,10 @@ const Chat = () => {
                   
                   <div className={`${
                     message.type === 'user' 
-                      ? 'px-4 py-3 rounded-lg bg-blue-600 text-white' 
+                      ? 'px-4 py-3 rounded-lg bg-blue-600 dark:bg-primary-600 text-white neon-card' 
                       : message.type === 'error'
                       ? ''
-                      : 'px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-200'
+                      : 'px-4 py-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 neon-glass-card'
                   }`}>
                     {message.type === 'error' ? (
                       <ErrorMessage
@@ -461,18 +463,18 @@ const Chat = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Панель ввода */}
-        <div className="bg-white border-t border-gray-200 p-6">
+        {/* Панель ввода - зафиксирована внизу */}
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 sticky bottom-0 z-40 shadow-lg">
           {/* Прикрепленные файлы */}
           {attachedFiles.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               {attachedFiles.map((file, index) => (
-                <div key={index} className="flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-lg">
-                  <File className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm text-gray-700">{file.name}</span>
+                <div key={index} className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">
+                  <File className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{file.name}</span>
                   <button
                     onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== index))}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -481,14 +483,14 @@ const Chat = () => {
             </div>
           )}
 
-          <div className="flex items-end space-x-4">
+          <div className="flex items-end space-x-2 sm:space-x-4">
             <div className="flex-1">
               <textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Задайте ваш правовой вопрос..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-primary-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 neon-glow-purple neon-focus"
                 rows={3}
                 disabled={isGenerating}
               />
@@ -497,7 +499,7 @@ const Chat = () => {
             <div className="flex flex-col space-y-2">
               <button
                 onClick={() => setShowFileUpload(!showFileUpload)}
-                className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="p-2 sm:p-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center neon-interactive touch-manipulation"
                 title="Прикрепить файл"
               >
                 <Paperclip className="w-5 h-5" />
@@ -505,7 +507,7 @@ const Chat = () => {
               
               <button
                 onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
-                className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="p-2 sm:p-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center neon-interactive touch-manipulation"
                 title="Голосовой ввод"
               >
                 <Mic className="w-5 h-5" />
@@ -514,7 +516,7 @@ const Chat = () => {
               <button
                 onClick={sendMessage}
                 disabled={!inputMessage.trim() || isGenerating}
-                className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 sm:p-3 bg-blue-600 dark:bg-primary-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[44px] min-w-[44px] flex items-center justify-center neon-button-primary touch-manipulation"
                 title="Отправить сообщение"
               >
                 <Send className="w-5 h-5" />
@@ -562,10 +564,10 @@ const Chat = () => {
         />
       )}
 
-      {/* Система уведомлений о статусе */}
+      {/* Система уведомлений о статусе (без дубля индикатора генерации) */}
       <StatusNotificationSystem
         websocket={websocket}
-        isGenerating={isGenerating}
+        isGenerating={false}
         generationStartTime={generationStartTime}
         onStopGeneration={stopGeneration}
         onReconnect={forceReconnect}

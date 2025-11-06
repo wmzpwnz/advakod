@@ -40,16 +40,26 @@ const EnhancedResponse = ({ message, enhancements = {} }) => {
   const messageEnhancements = message.enhancements || enhancements || {};
   const factChecking = messageEnhancements.fact_checking || {};
   const explainability = messageEnhancements.explainability || {};
-  const overallQuality = messageEnhancements.overall_quality || 0.5;
+  
+  // Получаем качество - проверяем, было ли оно реально оценено
+  const rawQuality = messageEnhancements.overall_quality;
+  const overallQuality = rawQuality !== undefined && rawQuality !== null ? rawQuality : null;
+  
+  // Проверяем, было ли качество реально оценено
+  // Не показываем индикатор если:
+  // - качество не определено (null/undefined)
+  // - качество равно дефолтному значению 0.5 (что означает отсутствие оценки)
+  // Показываем если качество явно отличается от 0.5
+  const hasQualityRating = overallQuality !== null && overallQuality !== 0.5;
 
   // Определяем качество ответа
   const getQualityLevel = (quality) => {
-    if (quality >= 0.8) return { level: 'high', color: 'text-green-600', bg: 'bg-green-100' };
-    if (quality >= 0.6) return { level: 'medium', color: 'text-yellow-600', bg: 'bg-yellow-100' };
-    return { level: 'low', color: 'text-red-600', bg: 'bg-red-100' };
+    if (quality >= 0.8) return { level: 'high', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30' };
+    if (quality >= 0.6) return { level: 'medium', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30' };
+    return { level: 'low', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30' };
   };
 
-  const qualityInfo = getQualityLevel(overallQuality);
+  const qualityInfo = overallQuality !== null ? getQualityLevel(overallQuality) : null;
 
   // Форматируем метрики факт-чекинга
   const formatMetric = (value) => {
@@ -66,9 +76,9 @@ const EnhancedResponse = ({ message, enhancements = {} }) => {
         {message.content}
       </div>
 
-      {/* Индикатор качества ответа */}
-      {overallQuality > 0 && (
-        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${qualityInfo.bg} ${qualityInfo.color}`}>
+      {/* Индикатор качества ответа - показываем только если качество было реально оценено */}
+      {hasQualityRating && qualityInfo && (
+        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${qualityInfo.bg} ${qualityInfo.color} neon-glow-purple`}>
           <Shield className="w-4 h-4 mr-2" />
           Качество: {qualityInfo.level === 'high' ? 'Высокое' : qualityInfo.level === 'medium' ? 'Среднее' : 'Низкое'}
         </div>
