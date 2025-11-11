@@ -17,10 +17,30 @@ const EnhancedResponse = ({ message, enhancements = {} }) => {
   const [showSources, setShowSources] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
 
-  // Извлекаем данные из enhancements
-  const factChecking = enhancements.fact_checking || {};
-  const explainability = enhancements.explainability || {};
-  const overallQuality = enhancements.overall_quality || 0.5;
+  // Защита от undefined message
+  if (!message) {
+    console.warn('EnhancedResponse: message is undefined');
+    return (
+      <div className="text-gray-500 italic">
+        Сообщение недоступно
+      </div>
+    );
+  }
+
+  if (!message.content) {
+    console.warn('EnhancedResponse: message.content is undefined', message);
+    return (
+      <div className="text-gray-500 italic">
+        Содержимое сообщения недоступно
+      </div>
+    );
+  }
+
+  // Извлекаем данные из enhancements (из message или из пропсов)
+  const messageEnhancements = message.enhancements || enhancements || {};
+  const factChecking = messageEnhancements.fact_checking || {};
+  const explainability = messageEnhancements.explainability || {};
+  const overallQuality = messageEnhancements.overall_quality || 0.5;
 
   // Определяем качество ответа
   const getQualityLevel = (quality) => {

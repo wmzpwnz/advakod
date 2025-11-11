@@ -23,6 +23,16 @@ const TokenBalance = () => {
       setError(null);
     } catch (err) {
       console.error('Ошибка загрузки баланса:', err);
+      
+      // Если токен истек, очищаем его и перенаправляем на логин
+      if (err.response?.status === 401) {
+        console.log('Token expired, logging out automatically');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
+      
       setError('Не удалось загрузить баланс');
     } finally {
       setLoading(false);

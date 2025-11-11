@@ -33,14 +33,18 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://user:password@advakod_postgres:5432/ai_lawyer
-      - POSTGRES_PASSWORD=SecurePassword123456
+      - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@advakod_postgres:5432/advakod_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - QDRANT_URL=http://advakod_qdrant:6333
       - REDIS_URL=redis://advakod_redis:6379
       - CORS_ORIGINS=https://advacodex.com,https://www.advacodex.com
       - TRUSTED_HOSTS=advacodex.com,*.advacodex.com,localhost,127.0.0.1,advakod_backend
       - ADMIN_IP_WHITELIST=127.0.0.1,::1,localhost,31.130.145.75,193.233.106.104
       - VISTRAL_MODEL_PATH=/opt/advakod/models/vistral/Vistral-24B-Instruct-Q5_0.gguf
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    env_file:
+      - .env
     volumes:
       - ./backend:/app
       - ./static:/app/static
@@ -61,15 +65,14 @@ services:
 
   # Frontend
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: http://localhost:8000/api/v1
+        REACT_APP_WS_URL: ws://localhost:8000/ws
     container_name: advakod_frontend
     ports:
       - "3001:3000"
-    environment:
-      - REACT_APP_API_URL=https://advacodex.com/api/v1
-      - REACT_APP_WS_URL=wss://advacodex.com/ws
-    volumes:
-      - ./frontend/src:/app/src
     depends_on:
       - backend
     networks:
@@ -81,9 +84,9 @@ services:
     image: postgres:15-alpine
     container_name: advakod_postgres
     environment:
-      - POSTGRES_DB=ai_lawyer
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=advakod_db
+      - POSTGRES_USER=advakod
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -93,7 +96,7 @@ services:
       - advakod_default
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d ai_lawyer"]
+      test: ["CMD-SHELL", "pg_isready -U advakod -d advakod_db"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -130,6 +133,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --loglevel notice
 
   # Codes System (if needed)
   codes-system:

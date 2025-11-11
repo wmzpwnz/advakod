@@ -12,6 +12,7 @@ import json
 from typing import Dict, Any
 
 from app.core.config import settings
+from app.core.database import init_db
 from app.api import api_router
 from app.api.websocket import router as websocket_router
 from app.api.lora_training import router as lora_training_router
@@ -31,6 +32,10 @@ from app.services.unified_monitoring_service import unified_monitoring_service
 from app.services.embeddings_service import embeddings_service
 from app.services.enhanced_embeddings_service import enhanced_embeddings_service
 from app.services.vector_store_service import vector_store_service
+
+# Импорты для performance optimizer и rate limiter
+from app.core.advanced_performance_optimizer import performance_optimizer
+from app.middleware.ml_rate_limit import MLRateLimiter
 
 # Prometheus метрики
 try:
@@ -70,6 +75,14 @@ async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения"""
     # Startup
     logger.info("🚀 Starting АДВАКОД - ИИ-Юрист для РФ")
+    
+    # Инициализация базы данных
+    try:
+        init_db()
+        logger.info("✅ Database initialized successfully")
+    except Exception as e:
+        logger.log_error(e, {"service": "database"})
+        logger.error(f"Database initialization failed: {e}")
     
     try:
         await cache_service.initialize()
@@ -129,7 +142,8 @@ async def lifespan(app: FastAPI):
     # Инициализируем cleanup task для rate limiter (legacy)
     try:
         # Rate limiter cleanup - используем существующий ml_rate_limiter
-        await ml_rate_limiter.initialize_cleanup()
+        ml_rate_limiter_instance = MLRateLimiter()
+        await ml_rate_limiter_instance.initialize_cleanup()
         logger.info("✅ Rate limiter cleanup task initialized")
     except Exception as e:
         logger.error(f"Rate limiter cleanup initialization failed: {e}")
@@ -534,7 +548,9 @@ async def get_metrics_json():
         # Legacy метрики (для совместимости)
         legacy_stats = {}
         try:
-            legacy_stats["performance_monitor"] = performance_monitor.get_all_metrics()
+            # Проверяем доступность performance_monitor
+            if 'performance_monitor' in globals():
+                legacy_stats["performance_monitor"] = performance_monitor.get_all_metrics()
             legacy_stats["performance_optimizer"] = performance_optimizer.get_performance_summary()
         except Exception as e:
             logger.warning(f"Failed to get legacy metrics: {e}")
@@ -557,7 +573,8 @@ async def get_metrics_json():
 async def get_user_rate_limit_stats(user_id: str):
     """Получить статистику rate limiting для пользователя"""
     try:
-        stats = ml_rate_limiter.get_user_stats(user_id)
+        ml_rate_limiter_instance = MLRateLimiter()
+        stats = ml_rate_limiter_instance.get_user_stats(user_id)
         return {
             "success": True,
             "stats": stats,
