@@ -127,6 +127,30 @@ advakod-*.tar.gz
 a2codex_deploy.tar.gz
 
 # Nginx конфиги (никогда в репозитории!)
-nginx*.conf
-*.conf
+# Но разрешаем примеры и шаблоны:
+!nginx*.example.conf
+!nginx*.template.conf
+!nginx_ssl.conf.example
 nginx_fixed.conf
+
+# Systemd service файлы - разрешаем примеры
+!*.service.example
+!*.service.template
+unified_codex_system.service
+
+# Статусные файлы системы - разрешаем примеры структуры
+unified_codexes/status/*.json
+!unified_codexes/status/system_status.example.json
+!unified_codexes/status/processed_files.example.json
+
+# Метаданные интеграции - разрешаем примеры
+unified_codexes/rag_integration/metadata/*.json
+!unified_codexes/rag_integration/metadata/integration_report.example.json
+
+# Отчеты валидации - разрешаем примеры
+unified_codexes/validation/reports/*.json
+!unified_codexes/validation/reports/validation_report.example.json
+
+# Отчеты интеграции - разрешаем примеры
+unified_codexes/reports/*.json
+!unified_codexes/reports/integration_report.example.json
