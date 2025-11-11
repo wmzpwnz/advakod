@@ -24,7 +24,7 @@ https://huggingface.co/IlyaGusev/saiga_llama3_8b_gguf
 
 **Загрузка:**
 ```bash
-./DOWNLOAD_BEST_MODELS.sh
+./scripts/models/DOWNLOAD_BEST_MODELS.sh
 # Выберите опцию 1
 ```
 
@@ -118,7 +118,7 @@ https://huggingface.co/IlyaGusev/saiga_nemo_12b_gguf
 ### Шаг 1: Загрузка модели
 ```bash
 chmod +x DOWNLOAD_BEST_MODELS.sh
-./DOWNLOAD_BEST_MODELS.sh
+./scripts/models/DOWNLOAD_BEST_MODELS.sh
 ```
 
 ### Шаг 2: Настройка
@@ -176,7 +176,7 @@ chmod +x configure_model.sh
 
 ```bash
 # Автоматическая миграция
-./DOWNLOAD_BEST_MODELS.sh  # Выберите 1
+./scripts/models/DOWNLOAD_BEST_MODELS.sh  # Выберите 1
 ./configure_model.sh llama3
 ./START_SERVER.sh
 ```

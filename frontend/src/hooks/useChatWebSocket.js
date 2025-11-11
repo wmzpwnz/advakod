@@ -70,7 +70,15 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
+
+          if (data.type === 'error' && data.error_code === 'model_not_loaded') {
+            // Полностью игнорируем эту ожидаемую ошибку
+            return;
+          }
+
+          if (data.type !== 'error' || data.error_code !== 'model_not_loaded') {
+            console.log('WebSocket message received:', data);
+          }
           
           if (data.type === 'pong') {
             console.log('Pong received');
@@ -89,12 +97,17 @@ export const useChatWebSocket = (sessionId, onNewMessage, onTyping, onSessionUpd
               onSessionUpdate?.(data.data);
               break;
             case 'generation_stopped':
-              // Обработка остановки генерации
               console.log('Generation stopped:', data.message);
-              // Можно добавить callback для обработки остановки
+              break;
+            case 'error':
+              if (data.error_code !== 'model_not_loaded') {
+                console.warn('WebSocket error message (ignored):', data.message, data.error_code);
+              }
               break;
             default:
-              console.log('Unknown message type:', data.type);
+              if (data.error_code !== 'model_not_loaded') {
+                console.log('Unknown message type:', data.type);
+              }
               break;
           }
         } catch (err) {

@@ -160,10 +160,12 @@ class UnifiedLLMService:
     def _load_model(self):
         """Синхронная загрузка модели Vistral"""
         if self._model_loaded and self.model is not None:
+            logger.debug("Модель уже загружена, пропускаем загрузку")
             return
 
         with self._load_lock:
             if self._model_loaded and self.model is not None:
+                logger.debug("Модель уже загружена (double-check), пропускаем загрузку")
                 return
             try:
                 import os
@@ -174,13 +176,20 @@ class UnifiedLLMService:
                 n_threads = getattr(settings, "VISTRAL_N_THREADS", 8)
                 n_gpu_layers = getattr(settings, "VISTRAL_N_GPU_LAYERS", 0)
                 
-                if not model_path or not os.path.exists(model_path):
+                logger.info("🔍 Проверка пути модели: %s", model_path)
+                
+                if not model_path:
+                    raise FileNotFoundError(f"Путь к модели не указан в настройках (VISTRAL_MODEL_PATH)")
+                
+                if not os.path.exists(model_path):
                     raise FileNotFoundError(f"Файл модели не найден: {model_path}")
                 
-                logger.info("🚀 Загружаем унифицированную модель Vistral из %s", model_path)
-                logger.info("📊 Параметры: n_ctx=%s, n_threads=%s, max_concurrency=%s, queue_size=%s", 
-                          n_ctx, n_threads, self._max_concurrency, self._queue_size)
+                file_size = os.path.getsize(model_path) / (1024**3)  # Размер в GB
+                logger.info("🚀 Загружаем унифицированную модель Vistral из %s (размер: %.2f GB)", model_path, file_size)
+                logger.info("📊 Параметры: n_ctx=%s, n_threads=%s, n_gpu_layers=%s, max_concurrency=%s, queue_size=%s", 
+                          n_ctx, n_threads, n_gpu_layers, self._max_concurrency, self._queue_size)
 
+                logger.info("⏳ Начинаем загрузку модели в память...")
                 self.model = Llama(
                     model_path=model_path,
                     n_ctx=n_ctx,
@@ -196,6 +205,8 @@ class UnifiedLLMService:
                 
             except Exception as e:
                 logger.exception("❌ Ошибка загрузки унифицированной модели Vistral: %s", e)
+                self._model_loaded = False
+                self.model = None
                 raise
 
     async def initialize(self):
@@ -398,6 +409,23 @@ class UnifiedLLMService:
 
             def _blocking_call():
                 try:
+                    # Сначала пробуем chat-completion, совместимо с instruct-моделями
+                    try:
+                        chat_res = self.model.create_chat_completion(
+                            messages=[
+                                {"role": "user", "content": prompt},
+                            ],
+                            max_tokens=allowed_max,
+                            temperature=temperature,
+                            top_p=top_p,
+                            stop=getattr(settings, "VISTRAL_STOP_TOKENS", None),
+                            repeat_penalty=getattr(settings, "VISTRAL_REPEAT_PENALTY", 1.1),
+                        )
+                        return {"_mode": "chat", **chat_res}
+                    except Exception:
+                        # Фоллбэк на текстовую генерацию
+                        pass
+
                     result = self.model(
                         prompt,
                         max_tokens=allowed_max,
@@ -406,7 +434,7 @@ class UnifiedLLMService:
                         stop=getattr(settings, "VISTRAL_STOP_TOKENS", None),
                         repeat_penalty=getattr(settings, "VISTRAL_REPEAT_PENALTY", 1.1),
                     )
-                    return result
+                    return {"_mode": "text", **(result if isinstance(result, dict) else {"raw": result})}
                 except Exception as e:
                     logger.exception("❌ Ошибка в blocking_call модели: %s", e)
                     raise
@@ -423,10 +451,35 @@ class UnifiedLLMService:
             try:
                 text = ""
                 if isinstance(result, dict) and "choices" in result and len(result["choices"]) > 0:
-                    text = (result["choices"][0].get("text") or "").strip()
+                    # Пытаемся извлечь из chat-completion, затем из text
+                    text = (
+                        result["choices"][0].get("message", {}).get("content")
+                        or result["choices"][0].get("text")
+                        or ""
+                    )
+                    text = (text or "").strip()
                 else:
-                    text = str(result)
-                
+                    text = (str(result) or "").strip()
+                # Fallback: если модель вернула пустую строку, делаем одну повторную попытку
+                if not text:
+                    logger.warning("⚠️ Пустой ответ модели. Выполняем повтор с повышенной temperature/top_p")
+                    def _retry_call():
+                        return self.model(
+                            prompt,
+                            max_tokens=max(32, min(allowed_max, 256)),
+                            temperature=0.5,
+                            top_p=0.9,
+                            stop=getattr(settings, "VISTRAL_STOP_TOKENS", None),
+                            repeat_penalty=getattr(settings, "VISTRAL_REPEAT_PENALTY", 1.1),
+                        )
+                    retry_result = await loop.run_in_executor(None, _retry_call)
+                    if isinstance(retry_result, dict) and "choices" in retry_result and len(retry_result["choices"]) > 0:
+                        text = (retry_result["choices"][0].get("text") or "").strip()
+                    else:
+                        text = (str(retry_result) or "").strip()
+                    if not text:
+                        text = "Извините, сейчас не удалось сформировать ответ. Попробуйте переформулировать вопрос или задать его короче."
+
                 response_time = time.time() - start_time
                 self._update_stats(True, response_time)
                 logger.info("✅ Унифицированная генерация завершена (len=%s, time=%.2fs)", 
@@ -460,12 +513,14 @@ class UnifiedLLMService:
                     logger.info(f"📊 Model settings: max_tokens={allowed_max}, temperature={request.temperature}, top_p={request.top_p}")
                     
                     chunk_count = 0
-                    # Используем правильные настройки для Vistral 24B
+                    # Используем оптимизированные настройки для Vistral 24B
+                    # Ограничиваем max_tokens для более быстрой генерации
                     generation_params = {
-                        "max_tokens": min(allowed_max, 2000),  # Увеличиваем лимит токенов
+                        "max_tokens": min(allowed_max, 1500),  # Ограничиваем для быстрой генерации
                         "temperature": getattr(settings, "VISTRAL_TEMPERATURE", 0.3),
                         "top_p": getattr(settings, "VISTRAL_TOP_P", 0.8),
-                        "stream": True
+                        "stream": True,
+                        "repeat_penalty": getattr(settings, "VISTRAL_REPEAT_PENALTY", 1.1),
                     }
                     
                     # Добавляем только необходимые параметры
@@ -475,12 +530,37 @@ class UnifiedLLMService:
                     logger.info(f"🔧 Using optimized generation params: {generation_params}")
                     
                     start_time = time.time()
-                    for chunk in self.model(request.prompt, **generation_params):
-                        # Таймаут для генерации - используем настройку из конфигурации
-                        if time.time() - start_time > self._inference_timeout:
-                            logger.error(f"❌ MODEL GENERATION TIMEOUT after {self._inference_timeout}s! Force stopping...")
-                            loop.call_soon_threadsafe(q.put_nowait, f"[TIMEOUT] Model generation exceeded {self._inference_timeout} seconds")
+                    # Предпочитаем chat streaming, затем фоллбэк на текстовый стрим
+                    stream_iter = None
+                    try:
+                        stream_iter = self.model.create_chat_completion(
+                            messages=[
+                                {"role": "system", "content": "Ты опытный юрист-консультант по законодательству РФ. Отвечай чётко и по делу."},
+                                {"role": "user", "content": request.prompt},
+                            ],
+                            stream=True,
+                            **{k: v for k, v in generation_params.items() if k != "stream"}
+                        )
+                    except Exception:
+                        stream_iter = self.model(request.prompt, **generation_params)
+
+                    for chunk in stream_iter:
+                        # Таймаут для генерации - используем настройку из конфигурации для чата
+                        # Используем таймаут для чата (10 минут для больших моделей на CPU)
+                        chat_timeout = getattr(settings, "AI_CHAT_RESPONSE_TIMEOUT", 600)  # 10 минут для чата
+                        if time.time() - start_time > chat_timeout:
+                            logger.error(f"❌ MODEL GENERATION TIMEOUT after {chat_timeout}s! Force stopping...")
+                            loop.call_soon_threadsafe(q.put_nowait, f"[TIMEOUT] Model generation exceeded {chat_timeout} seconds")
                             break
+                        
+                        # Дополнительная проверка: если токены генерируются слишком медленно (более 10 секунд на токен после первых 30)
+                        # Для больших моделей на CPU нормальная скорость 2-8 сек/токен, поэтому порог увеличен
+                        if chunk_count > 30 and time.time() - start_time > 60:
+                            time_per_token = (time.time() - start_time) / chunk_count
+                            if time_per_token > 10.0:  # Более 10 секунд на токен - это действительно слишком медленно
+                                logger.warning(f"⚠️ Модель генерирует токены слишком медленно: {time_per_token:.2f} сек/токен. Прерываем генерацию.")
+                                loop.call_soon_threadsafe(q.put_nowait, f"[TIMEOUT] Model generation too slow: {time_per_token:.2f} sec/token")
+                                break
                             
                         chunk_count += 1
                         if not chunk:
@@ -490,7 +570,11 @@ class UnifiedLLMService:
                         if not choices:
                             logger.warning(f"⚠️ No choices in chunk #{chunk_count}")
                             continue
-                        delta = choices[0].get("text", "")
+                        # Поддержка chat-стрима (delta.content) и text-стрима (text)
+                        delta = (
+                            choices[0].get("delta", {}).get("content")
+                            or choices[0].get("text", "")
+                        )
                         if delta:
                             logger.info(f"✅ Generated token #{chunk_count}: '{delta[:50]}...'")
                             loop.call_soon_threadsafe(q.put_nowait, delta)
@@ -527,41 +611,14 @@ class UnifiedLLMService:
 
     def create_legal_prompt(self, question: str, context: Optional[str] = None) -> str:
         """Создание промпта для юридических вопросов"""
-        special_instructions = ""
-        question_lower = (question or "").lower()
-        
-        if "ип" in question_lower or "индивидуальный предприниматель" in question_lower:
-            special_instructions = "\n# Инструкция: см. справочные данные в базе (не хардкодить в коде)\n"
-        
-        prompt = f"""Ты - опытный юрист-консультант по российскому законодательству. Отвечай на русском языке максимально подробно, точно и профессионально.
+        # Упрощенный промпт для стабильной работы
+        prompt = f"""Ты опытный юрист-консультант по российскому законодательству. Отвечай подробно и профессионально на русском языке.
 
-КРИТИЧЕСКИ ВАЖНО - ТОЧНОСТЬ ИНФОРМАЦИИ:
-- НИКОГДА не выдумывай законы, статьи, сроки или процедуры
-- Если не знаешь точную информацию - честно скажи "уточните в компетентных органах"
-- Всегда проверяй актуальность данных на 2024 год
-- Используй только реально существующие законы РФ
-- Указывай точные номера статей и названия законов
-- Сроки должны быть реалистичными (дни, недели, месяцы, НЕ годы)
-- НЕ упоминай внешние источники (consultant.ru, garant.ru и т.д.)
-- НЕ добавляй ссылки на веб-сайты в ответ
-- НЕ ПУТАЙ номера статей!
-- Если статья не найдена в базе - скажи "статья не найдена в базе данных"
-
-{special_instructions}
-
-Правила ответа:
-- Давай развернутые и детальные ответы (1000-2000 слов)
-- Используй простой и понятный язык, как будто объясняешь другу
-- Приводи конкретные статьи законов и кодексов с точными номерами
-- Давай практические рекомендации и реальные примеры
-- Структурируй ответ с четкими заголовками и подзаголовками
-- Объясняй сложные правовые понятия простыми словами
-- Включай информацию о точных сроках, штрафах, ответственности
-- Давай пошаговые инструкции с конкретными действиями
-- НЕ ПОВТОРЯЙСЯ - каждый пункт должен быть уникальным
-- ЗАВЕРШАЙ ответ кратким резюме
-
-Помни: лучше честно сказать "уточните в налоговой/суде/прокуратуре", чем дать неправильную информацию!
+Важно:
+- Используй только реальные законы РФ
+- Указывай точные статьи и номера
+- Давай практические советы
+- Если не знаешь точно - скажи "уточните в компетентных органах"
 
 Вопрос: {question}
 
@@ -621,6 +678,19 @@ class UnifiedLLMService:
     def is_model_loaded(self) -> bool:
         """Проверяет, загружена ли модель"""
         return self._model_loaded and self.model is not None
+
+    # Совместимость с API: простой индикатор готовности
+    def is_model_ready(self) -> bool:
+        """Возвращает True, если модель загружена и готова к обслуживанию запросов."""
+        return self.is_model_loaded()
+
+    async def get_model_status(self) -> dict:
+        """Краткий статус модели для проверок в API."""
+        return {
+            "model_loaded": self.is_model_loaded(),
+            "active_requests": len(self._active_requests),
+            "max_concurrency": self._max_concurrency,
+        }
 
     async def _update_metrics_periodically(self):
         """Периодически обновляет метрики"""

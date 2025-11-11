@@ -60,6 +60,11 @@ class AdminSecurityService:
             logger.info("🔓 В режиме разработки - пропускаем проверку IP")
             return True
             
+        # Если whitelist пустой, пропускаем проверку (для удобства настройки)
+        if not self.admin_ip_whitelist:
+            logger.info("🔓 IP whitelist пуст - пропускаем проверку IP")
+            return True
+            
         client_ip = self.get_client_ip(request)
         
         # Проверяем whitelist

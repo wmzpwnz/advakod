@@ -293,67 +293,101 @@ const Chat = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Используем RAG API для всех запросов
-      const endpoint = '/rag/chat/rag/stream';
-
-      const formData = new FormData();
-      formData.append('query', currentMessage);
+      // Используем правильный эндпоинт для стриминга чата
+      // getApiUrl() уже добавляет /api/v1/, поэтому используем только путь без префикса
+      const endpoint = '/chat/message/stream';
 
       const response = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          message: currentMessage,
+          session_id: sessionId
+        })
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Обработка RAG API ответа (потоковые данные)
+      // Обработка SSE потока от /chat/message/stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullResponse = '';
       let sources = [];
       let processingTime = 0;
-      let contextUsed = false;
-      let documentsFound = 0;
+      let buffer = '';
+
+      const applyChunk = (text) => {
+        if (!text) return;
+        fullResponse += text;
+        setMessages(prev => prev.map(msg =>
+          msg.id === assistantMessageId
+            ? { ...msg, content: fullResponse }
+            : msg
+        ));
+      };
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+          buffer += decoder.decode(value, { stream: true });
+          // SSE события разделены двойным переносом строки
+          const events = buffer.split('\n\n');
+          // Последний элемент может быть неполным, оставляем его в буфере
+          buffer = events.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') break;
+          for (const event of events) {
+            if (!event.trim()) continue;
+            
+            // Ищем строку с "data: "
+            const dataLine = event.split('\n').find(line => line.startsWith('data: '));
+            if (!dataLine) continue;
+            
+            const data = dataLine.slice(6).trim();
+            if (!data || data === '[DONE]') continue;
 
-              try {
-                const parsed = JSON.parse(data);
+            try {
+              const parsed = JSON.parse(data);
 
-                if (parsed.type === 'chunk') {
-                  fullResponse += parsed.content;
-
-                  // Обновляем сообщение в реальном времени
-                  setMessages(prev => prev.map(msg =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: fullResponse }
-                      : msg
-                  ));
-                } else if (parsed.type === 'sources') {
-                  sources = parsed.sources || [];
-                } else if (parsed.type === 'context_info') {
-                  contextUsed = parsed.context_used || false;
-                  documentsFound = parsed.documents_count || 0;
-                } else if (parsed.type === 'error') {
-                  throw new Error(parsed.content || 'Ошибка генерации ответа');
+              if (parsed.type === 'start') {
+                // Обновляем session_id, если он пришел
+                if (parsed.session_id && !sessionId) {
+                  setSessionId(parsed.session_id);
                 }
-              } catch (parseError) {
+              } else if (parsed.type === 'chunk' && typeof parsed.content === 'string') {
+                applyChunk(parsed.content);
+              } else if (parsed.type === 'end') {
+                processingTime = parsed.processing_time || processingTime;
+                // Завершаем стриминг
+              } else if (parsed.type === 'error') {
+                const errorContent = parsed.content || 'stream error';
+                if (
+                  typeof errorContent === 'string' &&
+                  (errorContent.includes('RAG система не готова') || 
+                   errorContent.includes('Модель ИИ временно недоступна') ||
+                   errorContent.includes('временно недоступен'))
+                ) {
+                  applyChunk(`\n\n⚠️ ${errorContent}\n\n`);
+                } else {
+                  throw new Error(errorContent);
+                }
+              }
+            } catch (parseError) {
+              // Если не удалось распарсить JSON, пробуем обработать как текст
+              if (
+                typeof data === 'string' &&
+                (data.includes('RAG система не готова') ||
+                 data.includes('Модель ИИ временно недоступна') ||
+                 data.includes('временно недоступен'))
+              ) {
+                applyChunk(`\n\n⚠️ ${data}\n\n`);
+              } else {
                 console.warn('Ошибка парсинга JSON:', parseError, 'Data:', data);
               }
             }
@@ -365,11 +399,10 @@ const Chat = () => {
           msg.id === assistantMessageId
             ? {
               ...msg,
-              content: fullResponse,
+              content: fullResponse || 'Ответ не был сформирован. Попробуйте ещё раз.',
               isStreaming: false,
-              sources: sources,
-              context_used: contextUsed,
-              documents_found: documentsFound
+              sources: sources.length > 0 ? sources : undefined,
+              processing_time: processingTime
             }
             : msg
         ));

@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     
     # Таймауты для разных типов AI-анализа
     AI_DOCUMENT_ANALYSIS_TIMEOUT: int = int(os.getenv("AI_DOCUMENT_ANALYSIS_TIMEOUT", "600"))  # 10 минут для анализа документов
-    AI_CHAT_RESPONSE_TIMEOUT: int = int(os.getenv("AI_CHAT_RESPONSE_TIMEOUT", "300"))  # 5 минут для чата
+    AI_CHAT_RESPONSE_TIMEOUT: int = int(os.getenv("AI_CHAT_RESPONSE_TIMEOUT", "600"))  # 10 минут для чата (увеличено для больших моделей)
     AI_COMPLEX_ANALYSIS_TIMEOUT: int = int(os.getenv("AI_COMPLEX_ANALYSIS_TIMEOUT", "1200"))  # 20 минут для сложного анализа
     AI_EMBEDDINGS_TIMEOUT: int = int(os.getenv("AI_EMBEDDINGS_TIMEOUT", "60"))  # 1 минута для эмбеддингов
     

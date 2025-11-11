@@ -9,7 +9,9 @@ import {
   AlertCircle,
   CheckCircle,
   Eye,
-  Plus
+  Plus,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '../config/api';
@@ -42,10 +44,25 @@ const DocumentManagement = () => {
     limit: 20,
     total: 0
   });
+  const [selectedDocumentType, setSelectedDocumentType] = useState(null); // null = все документы
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [expandedTypes, setExpandedTypes] = useState({}); // Для выпадающих списков
+  const [documentsByType, setDocumentsByType] = useState({}); // Группировка документов по типам
+  const [typeDocumentsCache, setTypeDocumentsCache] = useState({}); // Кэш документов по типам
 
   useEffect(() => {
+    loadDocumentTypes();
     loadDocuments();
-  }, [pagination.skip]);
+  }, [pagination.skip, selectedDocumentType]);
+
+  const loadDocumentTypes = async () => {
+    try {
+      const response = await axios.get(getApiUrl('/admin/documents/types'));
+      setDocumentTypes(response.data.types || []);
+    } catch (err) {
+      console.error('Document types error:', err);
+    }
+  };
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -56,15 +73,77 @@ const DocumentManagement = () => {
         limit: pagination.limit.toString()
       });
 
+      // Добавляем фильтр по типу документа, если выбран
+      if (selectedDocumentType) {
+        params.append('document_type', selectedDocumentType);
+      }
+
       const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`);
       setDocuments(response.data.documents || []);
       setPagination(prev => ({ ...prev, total: response.data.total || 0 }));
+      
+      // Сохраняем группировку документов по типам из API
+      if (response.data.documents_by_type) {
+        setDocumentsByType(response.data.documents_by_type);
+      }
+      
+      // Автоматически раскрываем выбранную категорию
+      if (selectedDocumentType && !expandedTypes[selectedDocumentType]) {
+        setExpandedTypes(prev => ({ ...prev, [selectedDocumentType]: true }));
+      }
     } catch (err) {
       setError('Ошибка загрузки документов');
       console.error('Documents error:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadDocumentsByType = async (typeId) => {
+    // Если уже загружены, не загружаем повторно
+    if (typeDocumentsCache[typeId]) {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        skip: '0',
+        limit: '1000', // Загружаем все документы этого типа
+        document_type: typeId
+      });
+
+      const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`);
+      setTypeDocumentsCache(prev => ({
+        ...prev,
+        [typeId]: response.data.documents || []
+      }));
+    } catch (err) {
+      console.error(`Error loading documents for type ${typeId}:`, err);
+    }
+  };
+
+  const toggleTypeExpansion = async (typeId) => {
+    const isCurrentlyExpanded = expandedTypes[typeId];
+    
+    // Если раскрываем, загружаем документы этого типа
+    if (!isCurrentlyExpanded) {
+      await loadDocumentsByType(typeId);
+    }
+    
+    setExpandedTypes(prev => ({
+      ...prev,
+      [typeId]: !prev[typeId]
+    }));
+  };
+
+  const handleTypeSelect = (typeId) => {
+    if (selectedDocumentType === typeId) {
+      // Если уже выбран этот тип, снимаем фильтр
+      setSelectedDocumentType(null);
+    } else {
+      setSelectedDocumentType(typeId);
+    }
+    setPagination(prev => ({ ...prev, skip: 0 })); // Сбрасываем пагинацию
   };
 
   const handleSearch = async () => {
@@ -522,6 +601,134 @@ const DocumentManagement = () => {
         </div>
       </div>
 
+      {/* Категории документов с аккордеоном */}
+      {documentTypes.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">📚 Категории документов</h3>
+          
+          {/* Кнопка "Все документы" */}
+          <div className="mb-4">
+            <button
+              onClick={() => handleTypeSelect(null)}
+              className={`w-full px-4 py-3 rounded-lg transition-colors text-left flex items-center justify-between ${
+                selectedDocumentType === null
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              <span className="font-medium">Все документы</span>
+              <span className="text-sm opacity-75">({pagination.total})</span>
+            </button>
+          </div>
+
+          {/* Аккордеон с категориями */}
+          <div className="space-y-2">
+            {documentTypes.map((type) => {
+              // Используем documentsByType из API для точного подсчета
+              const typeDocumentsFromAPI = documentsByType[type.id] || [];
+              // Используем кэш для раскрытых категорий
+              const cachedTypeDocuments = typeDocumentsCache[type.id] || [];
+              
+              // Если категория раскрыта, показываем документы из кэша (все документы этого типа)
+              const typeDocuments = expandedTypes[type.id] 
+                ? cachedTypeDocuments
+                : documents.filter(doc => 
+                    (doc.document_type || doc.metadata?.document_type) === type.id
+                  );
+              
+              // Для счетчика используем данные из API или кэша
+              const typeCount = cachedTypeDocuments.length > 0 
+                ? cachedTypeDocuments.length 
+                : (typeDocumentsFromAPI.length > 0 
+                    ? typeDocumentsFromAPI.length 
+                    : documents.filter(doc => 
+                        (doc.document_type || doc.metadata?.document_type) === type.id
+                      ).length);
+              
+              const isExpanded = expandedTypes[type.id];
+              const isSelected = selectedDocumentType === type.id;
+              
+              return (
+                <div key={type.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  {/* Заголовок категории */}
+                  <button
+                    onClick={() => {
+                      toggleTypeExpansion(type.id);
+                      if (!isSelected) {
+                        handleTypeSelect(type.id);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
+                      isSelected
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                      <span className="text-xl">{type.icon}</span>
+                      <span className="font-medium">{type.name}</span>
+                    </div>
+                    <span className="text-sm opacity-75">
+                      ({typeCount > 0 ? typeCount : '...'})
+                    </span>
+                  </button>
+                  
+                  {/* Выпадающий список документов */}
+                  {isExpanded && (
+                    <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                      {loading ? (
+                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                          Загрузка...
+                        </div>
+                      ) : typeDocuments.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                          Нет документов в этой категории
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {typeDocuments.map((doc) => (
+                            <div key={doc.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2">
+                                    <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                      {doc.file_name || doc.metadata?.file_name || doc.metadata?.filename || 'Без имени файла'}
+                                    </p>
+                                  </div>
+                                  <div className="mt-1 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                                    <span>Размер: {formatFileSize(doc.length || doc.total_length || 0)}</span>
+                                    {doc.chunks_count && (
+                                      <span>Чанков: {doc.chunks_count}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteDocument(doc.id)}
+                                  className="ml-4 p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                                  title="Удалить документ"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Сообщения */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -546,99 +753,6 @@ const DocumentManagement = () => {
           </div>
         </div>
       )}
-
-      {/* Список документов */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Нет документов</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Начните с загрузки первого документа.
-            </p>
-            <div className="mt-6">
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Загрузить документ
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {documents.map((doc) => (
-              <div key={doc.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
-                        <span className="text-lg">{getFileTypeIcon(doc.filename)}</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {getDocumentTitle(doc)}
-                        </h3>
-                        {getDocumentDate(doc) && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {getDocumentDate(doc)}
-                          </span>
-                        )}
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          getDocumentStatus(doc) === 'processed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                          getDocumentStatus(doc) === 'processing' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                          getDocumentStatus(doc) === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                          getDocumentStatus(doc) === 'ready' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        }`}>
-                          {getDocumentStatus(doc) === 'processed' ? 'Обработан' :
-                           getDocumentStatus(doc) === 'processing' ? 'Обрабатывается' :
-                           getDocumentStatus(doc) === 'error' ? 'Ошибка' :
-                           getDocumentStatus(doc) === 'ready' ? 'Готов' : 'Готов'}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {doc.metadata?.filename || doc.metadata?.original_filename || doc.filename || 'Без имени файла'}
-                      </p>
-                      <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                        <span>Размер: {formatFileSize(doc.metadata?.file_size || doc.length || doc.size || 0)}</span>
-                        {(doc.metadata?.pages || doc.pages) && (
-                          <span>Страниц: {doc.metadata?.pages || doc.pages}</span>
-                        )}
-                        {doc.language && (
-                          <span>Язык: {doc.language}</span>
-                        )}
-                        {(doc.metadata?.document_type || doc.metadata?.type || doc.type) && (
-                          <span>Тип: {doc.metadata?.document_type || doc.metadata?.type || doc.type}</span>
-                        )}
-                      </div>
-                      <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                        {getDocumentPreview(doc)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleDeleteDocument(doc.id)}
-                      className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors"
-                      title="Удалить документ"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Модальное окно загрузки */}
       {showUploadModal && (

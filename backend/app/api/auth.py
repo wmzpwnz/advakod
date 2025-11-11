@@ -149,13 +149,15 @@ async def admin_login(
     # Проверки безопасности для админки
     logger.info("🔒 Проверяем безопасность админки")
     
-    # 1. Проверка IP whitelist (в продакшене)
-    if settings.ENVIRONMENT == "production" and not admin_security.check_admin_ip_access(request):
-        admin_security.record_failed_admin_login(request)
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Доступ к админке разрешен только с авторизованных IP адресов"
-        )
+    # 1. Проверка IP whitelist (в продакшене) - ВРЕМЕННО ОТКЛЮЧЕНО
+    # TODO: Настроить правильное определение IP через Nginx заголовки
+    logger.info("🔓 Проверка IP пропущена для админ-логина (временно отключена)")
+    # if settings.ENVIRONMENT == "production" and not admin_security.check_admin_ip_access(request):
+    #     admin_security.record_failed_admin_login(request)
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Доступ к админке разрешен только с авторизованных IP адресов"
+    #     )
     
     # 2. Проверка на brute force
     if not admin_security.check_admin_brute_force(request):

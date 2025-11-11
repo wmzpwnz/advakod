@@ -123,8 +123,12 @@ class JaegerTracing:
                 # HTTP tags
                 span.set_tag(tags.HTTP_METHOD, request.method)
                 span.set_tag(tags.HTTP_URL, str(request.url))
-                span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
-                span.set_tag("http.duration_ms", duration * 1000)
+                if response is not None:
+                    span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+                else:
+                    span.set_tag(tags.HTTP_STATUS_CODE, 500)
+                if duration:
+                    span.set_tag("http.duration_ms", duration * 1000)
                 
                 # Admin panel specific tags
                 span.set_tag("admin.user_role", user_role)
@@ -139,11 +143,11 @@ class JaegerTracing:
                     span.set_tag("client.user_agent", user_agent)
                 
                 # Error handling
-                if response.status_code >= 400:
+                if response is not None and response.status_code >= 400:
                     span.set_tag(tags.ERROR, True)
                     span.log_kv({
                         'event': 'http_error',
-                        'status_code': response.status_code,
+                        'status_code': response.status_code if response is not None else 500,
                         'path': request.url.path
                     })
     

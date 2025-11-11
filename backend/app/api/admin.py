@@ -331,52 +331,133 @@ async def get_user_analytics(
 async def get_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    document_type: Optional[str] = Query(None, description="Фильтр по типу документа (codex, federal_law, supreme_court_resolution, resolution, decree, order, other)"),
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
     """Получить список документов в RAG системе"""
     try:
+        # Автоматическая инициализация, если не готова
         if not vector_store_service.is_ready():
-            return {"documents": [], "total": 0, "message": "Vector store not ready"}
+            logger.warning("Vector store not ready, attempting initialization...")
+            try:
+                vector_store_service.initialize()
+                if not vector_store_service.is_ready():
+                    logger.error("Failed to initialize vector store service")
+                    return {"documents": [], "total": 0, "message": "Vector store not ready"}
+            except Exception as init_error:
+                logger.error(f"Error initializing vector store: {init_error}")
+                return {"documents": [], "total": 0, "message": f"Vector store initialization failed: {str(init_error)}"}
         
         # Получаем информацию о коллекции
         collection = vector_store_service.collection
-        total_docs = collection.count()
+        if collection is None:
+            logger.error("Collection is None after initialization")
+            return {"documents": [], "total": 0, "message": "Collection not found"}
+        
+        try:
+            total_docs = collection.count()
+        except Exception as count_error:
+            logger.error(f"Error getting collection count: {count_error}")
+            return {"documents": [], "total": 0, "message": f"Error accessing collection: {str(count_error)}"}
+        
+        # Если документов нет, возвращаем пустой список
+        if total_docs == 0:
+            return {
+                "documents": [],
+                "total": 0,
+                "skip": skip,
+                "limit": limit
+            }
         
         # Получаем ВСЕ документы с метаданными для группировки
-        results = collection.get(
-            limit=total_docs,  # Получаем все документы
-            include=['metadatas', 'documents']
-        )
+        try:
+            results = collection.get(
+                limit=total_docs,  # Получаем все документы
+                include=['metadatas', 'documents']
+            )
+        except Exception as get_error:
+            logger.error(f"Error getting documents from collection: {get_error}")
+            return {"documents": [], "total": 0, "message": f"Error retrieving documents: {str(get_error)}"}
+        
+        # Проверяем структуру результатов
+        if not results or 'documents' not in results or 'metadatas' not in results:
+            logger.warning("Invalid results structure from collection")
+            return {"documents": [], "total": 0, "message": "Invalid collection data structure"}
+        
+        if not results['documents'] or len(results['documents']) == 0:
+            return {
+                "documents": [],
+                "total": 0,
+                "skip": skip,
+                "limit": limit
+            }
         
         # Группируем чанки по document_id для получения уникальных документов
         documents_by_id = {}
-        for i, (doc, meta) in enumerate(zip(results['documents'], results['metadatas'])):
-            doc_id = meta.get('document_id', results['ids'][i])
+        try:
+            ids = results.get('ids', [])
+            documents_list = results.get('documents', [])
+            metadatas_list = results.get('metadatas', [])
             
-            if doc_id not in documents_by_id:
-                # Создаем новый документ
-                documents_by_id[doc_id] = {
-                    "id": doc_id,
-                    "content": doc,
-                    "metadata": meta,
-                    "length": len(doc),
-                    "chunks_count": 1,
-                    "total_length": len(doc)
-                }
-            else:
-                # Обновляем существующий документ
-                existing = documents_by_id[doc_id]
-                existing["chunks_count"] += 1
-                existing["total_length"] += len(doc)
-                # Обновляем контент на более длинный чанк
-                if len(doc) > len(existing["content"]):
-                    existing["content"] = doc
-                    existing["length"] = len(doc)
+            for i in range(len(documents_list)):
+                doc = documents_list[i] if i < len(documents_list) else ""
+                meta = metadatas_list[i] if i < len(metadatas_list) else {}
+                doc_id = meta.get('document_id', ids[i] if i < len(ids) else str(i))
+                
+                # Пропускаем заглушки и очень маленькие документы
+                # (документы размером < 1000 байт считаются заглушками)
+                doc_size = len(doc) if doc else 0
+                if doc_size < 1000:  # Фильтруем все документы меньше 1 KB
+                    continue
+                
+                if doc_id not in documents_by_id:
+                    # Создаем новый документ
+                    doc_size = len(doc) if doc else 0
+                    documents_by_id[doc_id] = {
+                        "id": doc_id,
+                        "content": doc,
+                        "metadata": meta,
+                        "length": doc_size,  # Будет обновлено на total_length при добавлении чанков
+                        "chunks_count": 1,
+                        "total_length": doc_size
+                    }
+                else:
+                    # Обновляем существующий документ
+                    existing = documents_by_id[doc_id]
+                    existing["chunks_count"] += 1
+                    existing["total_length"] += len(doc) if doc else 0
+                    # Обновляем контент на более длинный чанк
+                    if doc and len(doc) > len(existing.get("content", "")):
+                        existing["content"] = doc
+                    # Всегда обновляем length на total_length для отображения общего размера документа
+                    existing["length"] = existing["total_length"]
+        except Exception as grouping_error:
+            logger.error(f"Error grouping documents: {grouping_error}")
+            return {"documents": [], "total": 0, "message": f"Error processing documents: {str(grouping_error)}"}
         
-        # Преобразуем в список и сортируем по дате добавления
+        # Преобразуем в список и обновляем length для всех документов
         documents = list(documents_by_id.values())
+        for doc in documents:
+            # Убеждаемся, что length = total_length для корректного отображения в UI
+            doc["length"] = doc.get("total_length", doc.get("length", 0))
+            # Добавляем file_name на верхний уровень для удобства фронтенда
+            meta = doc.get("metadata", {})
+            if "file_name" not in doc:
+                doc["file_name"] = meta.get("file_name") or meta.get("filename", "Без имени файла")
+            # Добавляем document_type на верхний уровень
+            if "document_type" not in doc:
+                doc["document_type"] = meta.get("document_type", "other")
+        
+        # Фильтруем документы по общему размеру (сумма всех чанков)
+        # Документы с общим размером < 5 KB считаются заглушками
+        documents = [doc for doc in documents if doc.get('total_length', 0) >= 5120]
+        
         documents.sort(key=lambda x: x['metadata'].get('added_at', ''), reverse=True)
+        
+        # Фильтруем по типу документа, если указан
+        if document_type:
+            documents = [doc for doc in documents if doc['metadata'].get('document_type') == document_type]
         
         # Удаляем дубликаты по source_url для URL документов
         seen_urls = set()
@@ -384,7 +465,7 @@ async def get_documents(
         for doc in documents:
             if doc['metadata'].get('source_type') == 'url':
                 source_url = doc['metadata'].get('source_url', '')
-                if source_url not in seen_urls:
+                if source_url and source_url not in seen_urls:
                     seen_urls.add(source_url)
                     unique_documents.append(doc)
             else:
@@ -396,16 +477,358 @@ async def get_documents(
         total_unique_docs = len(documents)
         documents = documents[skip:skip + limit]
         
+        # Логирование для отладки
+        logger.info(f"API /documents: возвращаем {len(documents)} документов из {total_unique_docs} уникальных")
+        if len(documents) > 0:
+            first_doc = documents[0]
+            file_name = first_doc.get('file_name') or first_doc.get('metadata', {}).get('file_name', 'unknown')
+            logger.info(f"Первый документ: {file_name}")
+        else:
+            logger.warning(f"API /documents: документы не найдены после группировки. documents_by_id содержит {len(documents_by_id)} записей")
+        
+        # Улучшаем структуру ответа для фронтенда
+        # Добавляем информацию о типах документов для группировки
+        documents_by_type = {}
+        for doc in documents:
+            doc_type = doc['metadata'].get('document_type', 'other')
+            if doc_type not in documents_by_type:
+                documents_by_type[doc_type] = []
+            documents_by_type[doc_type].append(doc)
+        
         return {
             "documents": documents,
             "total": total_unique_docs,
             "skip": skip,
-            "limit": limit
+            "limit": limit,
+            "document_type": document_type,  # Возвращаем примененный фильтр
+            "documents_by_type": documents_by_type,  # Группировка по типам для удобства
+            "available_types": list(documents_by_type.keys())  # Доступные типы документов
         }
         
     except Exception as e:
-        logger.error(f"Ошибка получения документов: {e}")
+        logger.error(f"Ошибка получения документов: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(e)}")
+
+# Маппинг типов документов на русские названия
+DOCUMENT_TYPE_NAMES = {
+    "codex": "Кодексы",
+    "federal_law": "Федеральные законы",
+    "supreme_court_resolution": "Постановления Верховного Суда",
+    "resolution": "Постановления",
+    "decree": "Указы",
+    "order": "Приказы",
+    "other": "Другие документы"
+}
+
+@router.get("/documents/types")
+async def get_document_types(
+    current_admin: User = Depends(get_current_admin)
+):
+    """Получить список доступных типов документов с русскими названиями"""
+    return {
+        "types": [
+            {
+                "id": doc_type,
+                "name": DOCUMENT_TYPE_NAMES.get(doc_type, doc_type),
+                "icon": get_document_type_icon(doc_type)
+            }
+            for doc_type in DOCUMENT_TYPE_NAMES.keys()
+        ]
+    }
+
+def get_document_type_icon(doc_type: str) -> str:
+    """Возвращает иконку для типа документа"""
+    icons = {
+        "codex": "📚",
+        "federal_law": "📜",
+        "supreme_court_resolution": "⚖️",
+        "resolution": "📋",
+        "decree": "📝",
+        "order": "📄",
+        "other": "📑"
+    }
+    return icons.get(doc_type, "📄")
+
+@router.get("/documents/stats")
+async def get_documents_stats(
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Получить статистику по типам документов"""
+    try:
+        if not vector_store_service.is_ready():
+            vector_store_service.initialize()
+            if not vector_store_service.is_ready():
+                return {"stats": {}, "message": "Vector store not ready"}
+        
+        collection = vector_store_service.collection
+        if collection is None:
+            return {"stats": {}, "message": "Collection not found"}
+        
+        try:
+            total_docs = collection.count()
+            if total_docs == 0:
+                return {"stats": {}, "total": 0}
+            
+            # Получаем все документы с метаданными
+            results = collection.get(
+                limit=total_docs,
+                include=['metadatas']
+            )
+            
+            # Подсчитываем по типам
+            stats = {}
+            documents_by_type = {}
+            
+            metadatas_list = results.get('metadatas', [])
+            for meta in metadatas_list:
+                doc_type = meta.get('document_type', 'other')
+                doc_id = meta.get('document_id', 'unknown')
+                
+                if doc_type not in stats:
+                    stats[doc_type] = 0
+                    documents_by_type[doc_type] = set()
+                
+                # Считаем уникальные документы по document_id
+                if doc_id not in documents_by_type[doc_type]:
+                    documents_by_type[doc_type].add(doc_id)
+                    stats[doc_type] += 1
+            
+            # Преобразуем в список для удобства с русскими названиями
+            stats_list = [
+                {
+                    "type": doc_type,
+                    "count": count,
+                    "name": DOCUMENT_TYPE_NAMES.get(doc_type, doc_type),
+                    "icon": get_document_type_icon(doc_type)
+                }
+                for doc_type, count in sorted(stats.items())
+            ]
+            
+            return {
+                "stats": stats,
+                "stats_list": stats_list,
+                "total": total_docs,
+                "total_unique_documents": sum(stats.values()),
+                "type_names": DOCUMENT_TYPE_NAMES  # Маппинг для фронтенда
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка получения статистики: {e}")
+            return {"stats": {}, "message": f"Error: {str(e)}"}
+            
+    except Exception as e:
+        logger.error(f"Ошибка получения статистики документов: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/documents/by-type/{document_type}")
+async def get_documents_by_type(
+    document_type: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Получить документы определенного типа с группировкой"""
+    try:
+        if not vector_store_service.is_ready():
+            vector_store_service.initialize()
+            if not vector_store_service.is_ready():
+                return {"documents": [], "total": 0, "message": "Vector store not ready"}
+        
+        collection = vector_store_service.collection
+        if collection is None:
+            return {"documents": [], "total": 0, "message": "Collection not found"}
+        
+        # Получаем все документы нужного типа
+        total_docs = collection.count()
+        if total_docs == 0:
+            return {"documents": [], "total": 0, "skip": skip, "limit": limit}
+        
+        results = collection.get(limit=total_docs, include=['metadatas', 'documents'])
+        
+        # Группируем по document_id
+        documents_by_id = {}
+        ids = results.get('ids', [])
+        documents_list = results.get('documents', [])
+        metadatas_list = results.get('metadatas', [])
+        
+        for i in range(len(documents_list)):
+            doc = documents_list[i] if i < len(documents_list) else ""
+            meta = metadatas_list[i] if i < len(metadatas_list) else {}
+            
+            # Фильтруем по типу
+            if meta.get('document_type') != document_type:
+                continue
+            
+            # Пропускаем маленькие документы (< 1000 байт)
+            doc_size = len(doc) if doc else 0
+            if doc_size < 1000:
+                continue
+            
+            doc_id = meta.get('document_id', ids[i] if i < len(ids) else str(i))
+            
+            if doc_id not in documents_by_id:
+                documents_by_id[doc_id] = {
+                    "id": doc_id,
+                    "content": doc,
+                    "metadata": meta,
+                    "length": len(doc) if doc else 0,
+                    "chunks_count": 1,
+                    "total_length": len(doc) if doc else 0,
+                    "file_name": meta.get('file_name', meta.get('filename', 'unknown')),
+                    "document_type": meta.get('document_type', 'other')
+                }
+            else:
+                existing = documents_by_id[doc_id]
+                existing["chunks_count"] += 1
+                existing["total_length"] += len(doc) if doc else 0
+                if doc and len(doc) > len(existing.get("content", "")):
+                    existing["content"] = doc
+                    existing["length"] = len(doc)
+        
+        # Преобразуем в список и фильтруем по общему размеру
+        documents = list(documents_by_id.values())
+        
+        # Фильтруем документы по общему размеру (сумма всех чанков)
+        # Документы с общим размером < 5 KB считаются заглушками
+        documents = [doc for doc in documents if doc.get('total_length', 0) >= 5120]
+        
+        # Добавляем file_name и document_type на верхний уровень для удобства фронтенда
+        for doc in documents:
+            meta = doc.get("metadata", {})
+            if "file_name" not in doc:
+                doc["file_name"] = meta.get("file_name") or meta.get("filename", "Без имени файла")
+            if "document_type" not in doc:
+                doc["document_type"] = meta.get("document_type", "other")
+        
+        documents.sort(key=lambda x: x['metadata'].get('added_at', ''), reverse=True)
+        
+        # Применяем пагинацию
+        total_unique_docs = len(documents)
+        documents = documents[skip:skip + limit]
+        
+        return {
+            "documents": documents,
+            "total": total_unique_docs,
+            "skip": skip,
+            "limit": limit,
+            "document_type": document_type
+        }
+        
+    except Exception as e:
+        logger.error(f"Ошибка получения документов по типу: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(e)}")
+
+@router.get("/documents/{document_id}/structure")
+async def get_document_structure(
+    document_id: str,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Получить структуру документа (разделы, статьи для кодексов)"""
+    try:
+        if not vector_store_service.is_ready():
+            vector_store_service.initialize()
+            if not vector_store_service.is_ready():
+                return {"structure": [], "message": "Vector store not ready"}
+        
+        collection = vector_store_service.collection
+        if collection is None:
+            return {"structure": [], "message": "Collection not found"}
+        
+        # Получаем все чанки этого документа
+        total_docs = collection.count()
+        results = collection.get(limit=total_docs, include=['metadatas', 'documents', 'ids'])
+        
+        metadatas = results.get('metadatas', [])
+        documents = results.get('documents', [])
+        ids = results.get('ids', [])
+        
+        # Фильтруем по document_id
+        document_chunks = []
+        for i, (meta, doc, chunk_id) in enumerate(zip(metadatas, documents, ids)):
+            if meta.get('document_id') == document_id:
+                document_chunks.append({
+                    'chunk_id': chunk_id,
+                    'content': doc,
+                    'metadata': meta,
+                    'chunk_index': meta.get('chunk_index', i),
+                    'part': meta.get('part', ''),
+                    'article': meta.get('article', ''),
+                    'item': meta.get('item', ''),
+                })
+        
+        # Сортируем по chunk_index
+        document_chunks.sort(key=lambda x: x['chunk_index'])
+        
+        # Группируем по разделам/статьям для кодексов
+        structure = []
+        current_section = None
+        current_article = None
+        
+        for chunk in document_chunks:
+            meta = chunk['metadata']
+            part = meta.get('part', '')
+            article = meta.get('article', '')
+            
+            # Если есть part - это раздел
+            if part and part != current_section:
+                current_section = part
+                structure.append({
+                    'type': 'section',
+                    'name': part,
+                    'chunks': []
+                })
+            
+            # Если есть article - это статья
+            if article:
+                # Ищем раздел для этой статьи
+                section = None
+                for s in structure:
+                    if s['type'] == 'section' and s['name'] == part:
+                        section = s
+                        break
+                
+                if not section and part:
+                    section = {'type': 'section', 'name': part, 'chunks': []}
+                    structure.append(section)
+                
+                # Добавляем статью
+                article_name = f"Статья {article}" if article else "Без номера"
+                if not section or article_name not in [a['name'] for a in section.get('articles', [])]:
+                    if section:
+                        if 'articles' not in section:
+                            section['articles'] = []
+                        section['articles'].append({
+                            'name': article_name,
+                            'article': article,
+                            'chunks': []
+                        })
+            
+            # Добавляем чанк в структуру
+            if structure:
+                if article and structure[-1].get('articles'):
+                    structure[-1]['articles'][-1]['chunks'].append(chunk)
+                else:
+                    if 'chunks' not in structure[-1]:
+                        structure[-1]['chunks'] = []
+                    structure[-1]['chunks'].append(chunk)
+            else:
+                structure.append({
+                    'type': 'content',
+                    'chunks': [chunk]
+                })
+        
+        return {
+            "document_id": document_id,
+            "structure": structure,
+            "total_chunks": len(document_chunks)
+        }
+        
+    except Exception as e:
+        logger.error(f"Ошибка получения структуры документа: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error retrieving document structure: {str(e)}")
 
 @router.post("/documents/upload")
 async def upload_document(

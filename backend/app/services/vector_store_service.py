@@ -15,6 +15,55 @@ from ..core.date_utils import DateUtils
 
 logger = logging.getLogger(__name__)
 
+def determine_document_type(file_name: str, document_id: str, text_content: str = "") -> str:
+    """
+    Определяет тип документа на основе имени файла, ID и содержимого
+    
+    Типы:
+    - codex: кодекс
+    - federal_law: федеральный закон
+    - supreme_court_resolution: постановление Верховного суда
+    - resolution: постановление
+    - decree: указ
+    - order: приказ
+    - other: другое
+    """
+    file_name_lower = file_name.lower()
+    doc_id_lower = document_id.lower()
+    text_lower = text_content.lower()[:5000] if text_content else ""  # Первые 5000 символов для анализа
+    
+    # Кодексы - по префиксу или имени файла
+    if doc_id_lower.startswith('codex_') or 'кодекс' in file_name_lower:
+        return "codex"
+    
+    # Анализ содержимого для PDF и других документов
+    if text_lower:
+        # Постановление Верховного суда
+        if ('постановление' in text_lower and 
+            ('верховн' in text_lower or 'верховного суда' in text_lower or 'вс рф' in text_lower)):
+            return "supreme_court_resolution"
+        
+        # Федеральный закон
+        if ('федеральный закон' in text_lower or 
+            'фз' in text_lower or 
+            'федеральный закон рф' in text_lower):
+            return "federal_law"
+        
+        # Постановление (общее)
+        if 'постановление' in text_lower:
+            return "resolution"
+        
+        # Указ
+        if 'указ' in text_lower and ('президента' in text_lower or 'президент' in text_lower):
+            return "decree"
+        
+        # Приказ
+        if 'приказ' in text_lower:
+            return "order"
+    
+    # По умолчанию - другое
+    return "other"
+
 class VectorStoreService:
     """Сервис для работы с векторной базой данных"""
     
@@ -26,6 +75,11 @@ class VectorStoreService:
         self.db_path = os.getenv("CHROMA_DB_PATH", os.path.join(os.getcwd(), "backend", "data", "chroma_db"))
         self.is_initialized = False
         # НЕ инициализируем при создании - только при первом использовании
+        
+        # Настройки гибридной классификации
+        self.use_ai_classification = os.getenv("USE_AI_CLASSIFICATION", "true").lower() == "true"
+        self._classification_cache = {}  # Кэш для результатов классификации
+        self._ai_classifier = None  # Ленивая загрузка AI-классификатора
         
     def initialize(self):
         """Инициализация ChromaDB"""
@@ -49,10 +103,18 @@ class VectorStoreService:
                 self.collection = self.client.get_collection(name=self.collection_name)
                 logger.info(f"✅ Найдена существующая коллекция: {self.collection_name}")
             except Exception:
+                # Для версии 0.4.18 используем DefaultEmbeddingFunction
+                try:
+                    from chromadb.utils import embedding_functions
+                    default_ef = embedding_functions.DefaultEmbeddingFunction()
+                except ImportError:
+                    # Если не доступно, используем None (для новых версий)
+                    default_ef = None
+                
                 self.collection = self.client.create_collection(
                     name=self.collection_name,
                     metadata={"description": "Коллекция юридических документов для RAG"},
-                    embedding_function=None  # Используем встроенную модель ChromaDB
+                    embedding_function=default_ef
                 )
                 logger.info(f"✅ Создана новая коллекция: {self.collection_name}")
             
@@ -130,7 +192,10 @@ class VectorStoreService:
         # Allowed metadata keys to prevent injection
         ALLOWED_KEYS = {
             "source", "article", "valid_from", "valid_to", "edition",
-            "title", "filename", "content_length", "added_at", "part", "item"
+            "title", "filename", "file_name", "file_path", "content_length", "added_at", 
+            "part", "item", "document_type", "document_id", "chunk_index",
+            "start_position", "end_position", "chunk_length", "total_chunks",
+            "processing_timestamp", "source_type", "text_length"
         }
         
         sanitized = {}
@@ -175,6 +240,16 @@ class VectorStoreService:
             # Генерируем ID если не предоставлен
             if not document_id:
                 document_id = str(uuid.uuid4())
+            
+            # Определяем тип документа, если не указан (гибридный подход)
+            if "document_type" not in sanitized_metadata:
+                file_name = sanitized_metadata.get("file_name", sanitized_metadata.get("filename", ""))
+                doc_type = self._determine_document_type_hybrid(
+                    file_name=file_name,
+                    document_id=document_id,
+                    text_content=content
+                )
+                sanitized_metadata["document_type"] = doc_type
             
             # Добавляем метаданные
             sanitized_metadata.update({
@@ -343,9 +418,16 @@ class VectorStoreService:
         try:
             # Удаляем коллекцию и создаем новую
             self.client.delete_collection(name=self.collection_name)
+            try:
+                from chromadb.utils import embedding_functions
+                default_ef = embedding_functions.DefaultEmbeddingFunction()
+            except ImportError:
+                default_ef = None
+            
             self.collection = self.client.create_collection(
                 name=self.collection_name,
-                metadata={"description": "Коллекция юридических документов для RAG"}
+                metadata={"description": "Коллекция юридических документов для RAG"},
+                embedding_function=default_ef
             )
             logger.info("🗑️ Коллекция очищена")
             return True
@@ -353,6 +435,73 @@ class VectorStoreService:
         except Exception as e:
             logger.error(f"❌ Ошибка очистки коллекции: {e}")
             return False
+    
+    def _determine_document_type_hybrid(
+        self,
+        file_name: str,
+        document_id: str,
+        text_content: str = ""
+    ) -> str:
+        """
+        Гибридный подход к определению типа документа:
+        1. Сначала правило-основанная проверка (быстро)
+        2. Если не уверены (other) → используем AI (точно)
+        3. Кэшируем результаты
+        """
+        # Проверяем кэш
+        cache_key = f"{document_id}:{file_name}"
+        if cache_key in self._classification_cache:
+            return self._classification_cache[cache_key]
+        
+        # Шаг 1: Правило-основанная проверка (быстро)
+        rule_type = determine_document_type(file_name, document_id, text_content)
+        
+        # Шаг 2: Если уверены - возвращаем сразу и кэшируем
+        if rule_type != 'other' and (
+            document_id.startswith('codex_') or 
+            'кодекс' in file_name.lower() or
+            ('федеральный закон' in text_content.lower()[:1000] if text_content else False) or
+            ('фз' in text_content.lower()[:500] if text_content else False)
+        ):
+            self._classification_cache[cache_key] = rule_type
+            return rule_type
+        
+        # Шаг 3: Если не уверены (other) и AI включен - используем AI
+        if rule_type == 'other' and self.use_ai_classification and text_content:
+            try:
+                # Ленивая загрузка AI-классификатора
+                if self._ai_classifier is None:
+                    try:
+                        from .ai_document_classifier import ai_document_classifier
+                        self._ai_classifier = ai_document_classifier
+                    except ImportError:
+                        logger.warning("AI-классификатор недоступен, используем rule-based")
+                        self.use_ai_classification = False
+                        self._classification_cache[cache_key] = rule_type
+                        return rule_type
+                
+                # Используем AI (синхронная версия для совместимости)
+                try:
+                    from .ai_document_classifier import classify_document_with_ai_sync
+                    ai_type = classify_document_with_ai_sync(
+                        text_content[:2000],  # Первые 2000 символов для анализа
+                        file_name,
+                        document_id
+                    )
+                    
+                    if ai_type != 'other':
+                        logger.info(f"✅ AI определил тип: {ai_type} (было: {rule_type})")
+                        self._classification_cache[cache_key] = ai_type
+                        return ai_type
+                except Exception as e:
+                    logger.debug(f"⚠️ AI-классификация недоступна для этого документа: {e}")
+            
+            except Exception as e:
+                logger.warning(f"⚠️ AI-классификация недоступна: {e}")
+        
+        # Возвращаем rule-based результат и кэшируем
+        self._classification_cache[cache_key] = rule_type
+        return rule_type
 
 # Глобальный экземпляр сервиса
 vector_store_service = VectorStoreService()

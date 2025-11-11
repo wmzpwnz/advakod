@@ -225,30 +225,11 @@ class WebSocketService:
     async def handle_message(self, user_id: int, session_id: int, message: str):
         """Обработка сообщения от WebSocket клиента"""
         logger.info(f"WebSocketService.handle_message called for user {user_id}, session {session_id}, message: {message}")
-        
-        # Проверяем готовность модели перед обработкой
-        from ..services.unified_llm_service import unified_llm_service
-        if not unified_llm_service.is_model_loaded():
-            logger.warning(f"Model not loaded for user {user_id}, attempting to load...")
-            try:
-                await unified_llm_service.ensure_model_loaded_async()
-                if not unified_llm_service.is_model_loaded():
-                    logger.error(f"Failed to load model for user {user_id}")
-                    await self.manager.send_personal_message({
-                        "type": "error",
-                        "message": "Модель ИИ временно недоступна. Попробуйте позже.",
-                        "error_code": "model_not_loaded"
-                    }, user_id)
-                    return
-            except Exception as e:
-                logger.error(f"Error loading model for user {user_id}: {e}")
-                await self.manager.send_personal_message({
-                    "type": "error",
-                    "message": "Ошибка загрузки модели ИИ. Попробуйте позже.",
-                    "error_code": "model_load_error"
-                }, user_id)
-                return
-        
+
+        # УБРАНА проверка модели - WebSocket используется только для уведомлений
+        # Обработка сообщений происходит через HTTP API /api/v1/chat/message/stream
+        # Не проверяем модель здесь, чтобы не блокировать WebSocket соединение
+
         try:
             message_data = json.loads(message)
             logger.info(f"Parsed message data: {message_data}")

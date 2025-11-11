@@ -205,6 +205,78 @@ class RAGIntegrationService:
             self.log(f"❌ Ошибка обработки {file_path.name}: {e}", "ERROR")
             return None
     
+    def process_text_document(self, file_path, validation_result=None):
+        """Обрабатывает текстовый документ (.txt)"""
+        self.log(f"📄 Обрабатываем текстовый документ: {file_path.name}")
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                text = f.read()
+            
+            # Очищаем текст
+            text = self.clean_text(text)
+            
+            if not text or len(text) < 50:
+                self.log(f"⚠️ Документ {file_path.name} содержит слишком мало текста", "WARNING")
+                return None
+            
+            # Создаем метаданные
+            metadata = {
+                'source': 'pravo.gov.ru',
+                'file_type': 'txt',
+                'file_name': file_path.name,
+                'file_path': str(file_path),
+                'processing_timestamp': datetime.now().isoformat(),
+                'text_length': len(text),
+                'source_type': 'file',
+                'document_id': f"codex_{file_path.stem}"
+            }
+            
+            # Добавляем данные валидации, если есть
+            if validation_result:
+                metadata.update({
+                    'legal_score': validation_result.get('legal_score', 0),
+                    'document_type': validation_result.get('document_type', 'unknown'),
+                    'is_valid': validation_result.get('is_valid', False)
+                })
+            
+            # Создаем чанки
+            document_id = f"codex_{self.processed_documents}_{file_path.stem}"
+            chunks = self.create_chunks(text, document_id, metadata)
+            
+            # Сохраняем обработанный документ
+            processed_file = self.output_dir / "processed_documents" / f"{document_id}.json"
+            with open(processed_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'document_id': document_id,
+                    'original_file': str(file_path),
+                    'text': text,
+                    'metadata': metadata,
+                    'chunks': chunks
+                }, f, ensure_ascii=False, indent=2)
+            
+            # Сохраняем чанки отдельно
+            for chunk in chunks:
+                chunk_file = self.output_dir / "chunks" / f"{chunk['id']}.json"
+                with open(chunk_file, 'w', encoding='utf-8') as f:
+                    json.dump(chunk, f, ensure_ascii=False, indent=2)
+            
+            self.processed_documents += 1
+            self.total_chunks += len(chunks)
+            
+            self.log(f"✅ Обработан документ {file_path.name}: {len(chunks)} чанков")
+            
+            return {
+                'document_id': document_id,
+                'chunks_count': len(chunks),
+                'text_length': len(text),
+                'processed_file': str(processed_file)
+            }
+            
+        except Exception as e:
+            self.log(f"❌ Ошибка обработки {file_path.name}: {e}", "ERROR")
+            return None
+    
     def process_pdf_document(self, file_path, validation_result=None):
         """Обрабатывает PDF документ (упрощенная версия)"""
         self.log(f"📄 Обрабатываем PDF документ: {file_path.name}")
@@ -304,8 +376,9 @@ class RAGIntegrationService:
         # Находим все файлы
         html_files = list(documents_dir.glob("**/*.html"))
         pdf_files = list(documents_dir.glob("**/*.pdf"))
+        txt_files = list(documents_dir.glob("**/*.txt"))  # Добавляем поддержку .txt файлов
         
-        all_files = html_files + pdf_files
+        all_files = html_files + pdf_files + txt_files
         self.log(f"📄 Найдено файлов для интеграции: {len(all_files)}")
         
         # Обрабатываем каждый файл
@@ -320,6 +393,9 @@ class RAGIntegrationService:
                 result = self.process_html_document(file_path, validation_result)
             elif file_path.suffix.lower() == '.pdf':
                 result = self.process_pdf_document(file_path, validation_result)
+            elif file_path.suffix.lower() == '.txt':
+                # Обрабатываем .txt файлы как текстовые документы
+                result = self.process_text_document(file_path, validation_result)
             else:
                 self.log(f"⚠️ Неподдерживаемый тип файла: {file_path.name}", "WARNING")
                 continue

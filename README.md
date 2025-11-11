@@ -69,6 +69,46 @@
 - **Sentence Transformers** - Эмбеддинги
 - **FAISS** - Векторный поиск
 
+## 📁 Структура проекта
+
+```
+/
+├── README.md                    # Главная документация
+├── .gitignore                   # Игнорируемые файлы
+├── Makefile                     # Команды для удобного запуска
+├── docker-compose.yml           # Основной compose
+├── docker-compose.prod.yml      # Production compose
+├── .env.example                 # Шаблон переменных окружения
+│
+├── scripts/                     # Все скрипты проекта
+│   ├── setup/                   # Настройка сервера
+│   ├── deploy/                  # Деплой
+│   ├── models/                  # Работа с моделями
+│   ├── server/                  # Управление сервером
+│   ├── backup/                  # Бэкапы
+│   ├── monitoring/              # Мониторинг
+│   └── utils/                   # Утилиты
+│
+├── docs/                        # Вся документация
+│   ├── getting-started/        # Быстрый старт
+│   ├── deployment/             # Деплой
+│   ├── architecture/           # Архитектура
+│   ├── api/                    # API документация
+│   ├── guides/                 # Гайды
+│   ├── reports/                # Отчеты
+│   ├── troubleshooting/        # Решение проблем
+│   └── development/            # Разработка
+│
+├── backend/                     # Backend приложение
+├── frontend/                    # Frontend приложение
+└── openapi/                     # OpenAPI спецификации
+```
+
+**Важно**: 
+- `nginx.conf` хранится на хосте в `/opt/advakod/config/nginx.conf` (не в репозитории)
+- Все скрипты находятся в `scripts/` с подпапками по категориям
+- Вся документация находится в `docs/` с подпапками по категориям
+
 ## 📦 Установка и запуск
 
 ### Предварительные требования

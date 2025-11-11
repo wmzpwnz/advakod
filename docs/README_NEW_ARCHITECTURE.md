@@ -116,7 +116,7 @@ npm start
 docker-compose -f docker-compose.prod.yml up -d
 
 # Или через скрипты
-./DEPLOY_ALL_IN_ONE.sh
+./scripts/deploy/DEPLOY_ALL_IN_ONE.sh
 ```
 
 ## 📈 Производительность

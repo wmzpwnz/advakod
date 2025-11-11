@@ -125,3 +125,8 @@ frontend/dist/
 *.tar.gz
 advakod-*.tar.gz
 a2codex_deploy.tar.gz
+
+# Nginx конфиги (никогда в репозитории!)
+nginx*.conf
+*.conf
+nginx_fixed.conf

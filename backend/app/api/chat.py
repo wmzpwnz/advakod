@@ -388,104 +388,139 @@ async def delete_chat_session(
 @user_rate_limit("chat")
 async def send_message_stream(
     chat_request: ChatRequest,
+    http_request: Request = None,
     current_user: User = Depends(auth_service.get_current_active_user),
-    db: Session = Depends(get_db),
-    http_request: Request = None
+    db: Session = Depends(get_db)
 ):
-    """Отправка сообщения в чат с стримингом ответа"""
+    """Отправка сообщения в чат с стримингом ответа."""
     start_time = time.time()
-    
+
     # Получаем или создаем сессию
     if chat_request.session_id:
         session = db.query(ChatSession).filter(
             ChatSession.id == chat_request.session_id,
             ChatSession.user_id == current_user.id
         ).first()
-        
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Сессия чата не найдена"
             )
     else:
-        # Создаем новую сессию
-        session = ChatSession(
-            user_id=current_user.id,
-            title="Новый чат"
-        )
+        session = ChatSession(user_id=current_user.id, title="Новый чат")
         db.add(session)
         db.commit()
         db.refresh(session)
-    
+
     # Сохраняем сообщение пользователя
-    user_message = ChatMessage(
-        session_id=session.id,
-        role="user",
-        content=chat_request.message
-    )
+    user_message = ChatMessage(session_id=session.id, role="user", content=chat_request.message)
     db.add(user_message)
     db.commit()
-    
-    async def generate_stream():
-        try:
-            # Получаем историю чата для контекста
-            chat_history = ""
-            try:
-                # Получаем последние 10 сообщений для контекста
-                recent_messages = db.query(ChatMessage).filter(
-                    ChatMessage.session_id == session.id
-                ).order_by(ChatMessage.created_at.desc()).limit(10).all()
-                
-                # Формируем историю в обратном порядке (от старых к новым)
-                history_parts = []
-                for msg in reversed(recent_messages):
-                    if msg.role == "user":
-                        history_parts.append(f"Пользователь: {msg.content}")
-                    elif msg.role == "assistant":
-                        history_parts.append(f"Ассистент: {msg.content}")
-                
-                if history_parts:
-                    chat_history = "\n".join(history_parts)
-                    logger.info(f"Загружена история чата для стриминга: {len(history_parts)} сообщений")
-                else:
-                    logger.info("История чата пуста - это первое сообщение")
-            except Exception as e:
-                logger.warning(f"Ошибка загрузки истории чата для стриминга: {e}")
-                chat_history = ""
-            
-            # Создаем промпт для Vistral-24B
-            # Отправляем начальную информацию
-            yield f"data: {json.dumps({'type': 'start', 'session_id': session.id, 'message_id': user_message.id})}\n\n"
-            
-            # Используем Vistral-24B модель для стриминга через unified_llm_service
-            full_response = ""
-            sources = [{"title": "Vistral-24B", "text": "Ответ от русскоязычной ИИ-модели Vistral-24B"}]
-            logger.info("Используем Vistral-24B для стриминга через unified_llm_service")
-            try:
-                # Создаем промпт с историей чата
-                prompt = unified_llm_service.create_legal_prompt(
-                    question=chat_request.message,
-                    context=chat_history
-                )
-                logger.info(f"Вызываем unified_llm_service.generate_response (stream) с промптом: {prompt[:100]}...")
-                async for chunk in unified_llm_service.generate_response(
-                    prompt=prompt,
-                    max_tokens=2500,
-                    stream=True
-                ):
-                    full_response += chunk
-                    yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
-                logger.info(f"Unified LLM сервис завершил стриминг, общая длина ответа: {len(full_response)} символов")
-            except Exception as e:
-                # Простой fallback при ошибке
-                logger.info(f"Ошибка в streaming: {e}, используем fallback")
-                sources = [{"title": "AI Lawyer (Demo)", "text": "Ответ от демо-версии ИИ-юриста"}]
-                fallback_text = f"Извините, произошла ошибка при обработке вашего запроса: {chat_request.message}"
-                yield f"data: {json.dumps({'type': 'chunk', 'content': fallback_text})}\n\n"
-                full_response = fallback_text
+    db.refresh(user_message)
 
-            
-            # Сохраняем полный ответ ИИ
+    async def generate_stream():
+        processing_time = None
+        assistant_message = None
+        full_response_parts: List[str] = []
+        sources = [{"title": "Vistral-24B", "text": "Ответ от Vistral-24B"}]
+        chat_history = ""
+
+        try:
+            # Собираем историю
+            try:
+                recent_messages = (
+                    db.query(ChatMessage)
+                    .filter(ChatMessage.session_id == session.id)
+                    .order_by(ChatMessage.created_at.desc())
+                    .limit(10)
+                    .all()
+                )
+                if recent_messages:
+                    history_lines = []
+                    for msg in reversed(recent_messages):
+                        prefix = "Пользователь" if msg.role == "user" else "Ассистент"
+                        history_lines.append(f"{prefix}: {msg.content}")
+                    chat_history = "\n".join(history_lines)
+                    logger.info(f"Загружена история для стриминга: {len(history_lines)} сообщений")
+            except Exception as history_err:
+                logger.warning(f"Ошибка загрузки истории чата: {history_err}")
+
+            # Сообщаем клиенту о старте
+            yield f"data: {json.dumps({'type': 'start', 'session_id': session.id, 'message_id': user_message.id})}\n\n"
+
+            # Проверяем готовность модели и пытаемся догрузить при необходимости
+            model_ready = unified_llm_service.is_model_ready()
+            if not model_ready:
+                logger.warning("Модель не готова – пробуем догрузить")
+                try:
+                    await unified_llm_service.ensure_model_loaded_async()
+                except Exception as load_err:
+                    logger.error(f"Ошибка при загрузке модели: {load_err}")
+                model_ready = unified_llm_service.is_model_ready()
+
+            if not model_ready:
+                warning_text = "AI-консультант временно недоступен. Пожалуйста, повторите запрос позднее."
+                sources = [{"title": "Система", "text": "Модель недоступна"}]
+                full_response_parts.append(warning_text)
+                yield f"data: {json.dumps({'type': 'chunk', 'content': warning_text})}\n\n"
+            else:
+                try:
+                    prompt = unified_llm_service.create_legal_prompt(
+                        question=chat_request.message,
+                        context=chat_history
+                    )
+                    logger.info(f"Старт стриминга unified_llm_service (prompt {len(prompt)} символов)")
+
+                    response_generator = unified_llm_service.generate_response(
+                        prompt=prompt,
+                        max_tokens=min(2000, getattr(settings, "AI_CHAT_RESPONSE_TOKENS", 2000)),
+                        stream=True,
+                        temperature=getattr(settings, "VISTRAL_TEMPERATURE", 0.3),
+                        top_p=getattr(settings, "VISTRAL_TOP_P", 0.8)
+                    )
+
+                    deadline = time.monotonic() + getattr(settings, "AI_CHAT_RESPONSE_TIMEOUT", 600)
+                    chunk_count = 0
+                    last_chunk_time = time.monotonic()
+
+                    while True:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise asyncio.TimeoutError("Stream deadline exceeded")
+                        # Увеличиваем таймаут для ожидания одного токена до 180 секунд
+                        # Для больших моделей на CPU нормальная скорость 5-8 сек/токен, но могут быть длительные паузы
+                        chunk_timeout = min(remaining, 180)
+                        try:
+                            chunk = await asyncio.wait_for(response_generator.__anext__(), timeout=chunk_timeout)
+                        except StopAsyncIteration:
+                            break
+
+                        if not chunk:
+                            continue
+
+                        chunk_count += 1
+                        last_chunk_time = time.monotonic()
+                        full_response_parts.append(chunk)
+                        yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
+
+                    logger.info(f"Стриминг завершён, получено {chunk_count} chunk'ов")
+                except asyncio.TimeoutError:
+                    timeout_msg = "Извините, генерация заняла слишком много времени. Попробуйте переформулировать вопрос."
+                    logger.warning("Таймаут стриминга")
+                    sources = [{"title": "AI Lawyer (Timeout)", "text": "Ответ при превышении времени"}]
+                    full_response_parts.append(timeout_msg)
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': timeout_msg})}\n\n"
+                except Exception as stream_err:
+                    logger.error(f"Ошибка во время стриминга: {stream_err}", exc_info=True)
+                    error_msg = "Произошла ошибка при обработке вашего запроса. Попробуйте повторить позже."
+                    sources = [{"title": "AI Lawyer (Error)", "text": "Ответ при ошибке обработки"}]
+                    full_response_parts.append(error_msg)
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': error_msg})}\n\n"
+
+            full_response = "".join(full_response_parts).strip()
+            if not full_response:
+                full_response = "Извините, не удалось сформировать ответ. Попробуйте ещё раз позднее."
+
             processing_time = time.time() - start_time
             assistant_message = ChatMessage(
                 session_id=session.id,
@@ -494,46 +529,36 @@ async def send_message_stream(
                 message_metadata={
                     "sources": sources,
                     "processing_time": processing_time,
-                    "context_used": False
+                    "context_used": bool(chat_history)
                 }
             )
             db.add(assistant_message)
             db.commit()
             db.refresh(assistant_message)
-            
-            # Уведомляем через WebSocket о новом сообщении (отключено для streaming API)
-            # try:
-            #     await websocket_service.notify_new_message(assistant_message, session.id)
-            # except Exception as e:
-            #     logger.error(f"Failed to send WebSocket notification: {e}")
 
-            # Отправляем финальную информацию
             yield f"data: {json.dumps({'type': 'end', 'message_id': assistant_message.id, 'processing_time': processing_time})}\n\n"
-                
-        except Exception as e:
-            logger.error(f"Ошибка в стриминг chat API: {e}")
-            error_message = "Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз."
-            
-            # Сохраняем сообщение об ошибке
+
+        except Exception as fatal_err:
+            logger.error(f"Фатальная ошибка стриминга: {fatal_err}", exc_info=True)
+            fallback_text = "Извините, произошла ошибка при обработке вашего запроса. Попробуйте снова."
             assistant_message = ChatMessage(
                 session_id=session.id,
                 role="assistant",
-                content=error_message,
-                message_metadata={"error": str(e)}
+                content=fallback_text,
+                message_metadata={"error": str(fatal_err)}
             )
             db.add(assistant_message)
             db.commit()
             db.refresh(assistant_message)
-            
-            yield f"data: {json.dumps({'type': 'error', 'content': error_message, 'message_id': assistant_message.id})}\n\n"
-    
+            yield f"data: {json.dumps({'type': 'error', 'content': fallback_text, 'message_id': assistant_message.id})}\n\n"
+
     return StreamingResponse(
         generate_stream(),
-        media_type="text/plain",
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
+            "X-Accel-Buffering": "no",
         }
     )
 

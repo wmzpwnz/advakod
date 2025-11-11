@@ -37,7 +37,7 @@ cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r
 cd frontend && npm install && cd ..
 
 # 2. Запустить систему
-./start_all.sh
+./scripts/server/start_all.sh
 
 # 3. Открыть в браузере
 # http://localhost:3000
@@ -94,8 +94,8 @@ cd frontend && npm install && cd ..
 ## 🛠️ БЫСТРЫЕ КОМАНДЫ:
 
 ```bash
-./start_all.sh          # Запустить всё
-./stop_all.sh           # Остановить всё
+./scripts/server/start_all.sh          # Запустить всё
+./scripts/server/stop_all.sh           # Остановить всё
 
 tail -f backend_runtime.log   # Логи backend
 tail -f frontend_runtime.log  # Логи frontend
