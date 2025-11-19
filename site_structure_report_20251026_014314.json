@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-10-26T01:43:14.723565",
+  "site_url": "http://pravo.gov.ru",
+  "analysis_summary": {
+    "main_page_accessible": true,
+    "codex_section_accessible": true,
+    "pdf_documents_accessible": true,
+    "publication_system_accessible": true
+  },
+  "key_findings": {
+    "main_sections": [
+      "Главная страница (pravo.gov.ru)",
+      "Раздел кодексов (pravo.gov.ru/codex/)",
+      "Система публикаций (publication.pravo.gov.ru)",
+      "PDF документы (pravo.gov.ru/OpubVsootvetstvii/)"
+    ],
+    "document_types": [
+      "PDF документы",
+      "HTML страницы с документами",
+      "Структурированные списки документов"
+    ],
+    "accessibility": "Все основные разделы доступны"
+  },
+  "recommended_approach": {
+    "strategy": "Поэтапное скачивание по разделам",
+    "priority_order": [
+      "1. Раздел кодексов (pravo.gov.ru/codex/)",
+      "2. PDF документы из OpubVsootvetstvii",
+      "3. Документы из системы публикаций",
+      "4. Ежедневные и ежемесячные подборки"
+    ],
+    "technical_requirements": [
+      "HTTP клиент с правильными заголовками",
+      "Обработка HTML и PDF файлов",
+      "Система валидации документов",
+      "Логирование процесса скачивания"
+    ]
+  },
+  "estimated_scope": {
+    "codex_section": "Специальный раздел с кодексами РФ",
+    "pdf_documents": "Прямые ссылки на PDF файлы",
+    "publication_documents": "Структурированные документы по категориям",
+    "total_estimated": "Тысячи документов различных типов"
+  },
+  "detailed_analysis": {
+    "main_page_links": {
+      "codex_links": 34,
+      "document_links": 6,
+      "navigation_links": 0
+    }
+  },
+  "link_tests": {
+    "total_tested": 7,
+    "accessible": 7,
+    "inaccessible": 0
+  },
+  "codex_section": {
+    "page_size": 37001,
+    "codex_names_found": 3,
+    "pdf_links_found": 0
+  }
+}

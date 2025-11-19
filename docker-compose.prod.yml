@@ -1,0 +1,310 @@
+version: '3.8'
+
+services:
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: advakod_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.strict.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./static:/app/static:ro
+      - ./media:/app/media:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database - migrated to host
+  # PostgreSQL now runs on host, not in container
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: advakod_qdrant
+    # Порты НЕ публикуются наружу для безопасности
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://qdrant:6333/collections"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: advakod_redis
+    # Порты НЕ публикуются наружу для безопасности
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxmemory 4gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --loglevel notice
+      --timeout 300
+      --tcp-keepalive 60
+
+  # Backend Server
+  backend:
+    build: ./backend
+    image: advakod-backend:latest
+    container_name: advakod_backend
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 28G
+          cpus: '8'
+        reservations:
+          memory: 24G
+          cpus: '6'
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@host.docker.internal:5432/advakod_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - QDRANT_URL=http://advakod_qdrant:6333
+      - REDIS_URL=redis://advakod_redis:6379
+      - CORS_ORIGINS=https://advacodex.com,https://www.advacodex.com
+      - BACKEND_CORS_ORIGINS=https://advacodex.com,https://www.advacodex.com
+      - TRUSTED_HOSTS=advacodex.com,*.advacodex.com,advakod_backend,backend,nginx
+      - ADMIN_IP_WHITELIST=31.130.145.75,193.233.106.104,193.233.106.124
+      - VISTRAL_MODEL_PATH=/opt/advakod/models/vistral/Vistral-24B-Instruct-Q5_0.gguf
+      - VISTRAL_N_CTX=4096
+      - VISTRAL_N_THREADS=8
+      - VISTRAL_MAX_CONCURRENCY=2
+      - VISTRAL_INFERENCE_TIMEOUT=300
+      - VISTRAL_N_GPU_LAYERS=0
+      - VISTRAL_TOKEN_MARGIN=128
+      - VISTRAL_REPEAT_PENALTY=1.1
+      - VISTRAL_TEMPERATURE=0.3
+      - VISTRAL_TOP_P=0.8
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - LOG_PROMPTS=false
+      - ACCESS_TOKEN_EXPIRE_MINUTES=240
+      - CACHE_TTL_DEFAULT=3600
+      - CACHE_TTL_AI_RESPONSE=7200
+      - CACHE_TTL_USER_PROFILE=1800
+      - AI_DOCUMENT_ANALYSIS_TIMEOUT=180
+      - AI_CHAT_RESPONSE_TIMEOUT=300
+      - AI_COMPLEX_ANALYSIS_TIMEOUT=300
+      - AI_EMBEDDINGS_TIMEOUT=30
+      - AI_DOCUMENT_ANALYSIS_TOKENS=3000
+      - AI_CHAT_RESPONSE_TOKENS=800
+      - AI_COMPLEX_ANALYSIS_TOKENS=2500
+      - AI_EMBEDDINGS_TOKENS=500
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+      - ./static:/app/static
+      - ./media:/app/media
+      - /opt/advakod/models:/opt/advakod/models:ro
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - qdrant
+      - redis
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 300s
+
+  # Celery Worker
+  celery_worker:
+    image: advakod-backend:latest
+    container_name: advakod_celery_worker
+    command: celery -A app.core.celery_app worker --loglevel=info --queues=default,ai_processing,email,file_processing,analytics,high_priority
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@host.docker.internal:5432/advakod_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - CELERY_BROKER_URL=redis://advakod_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://advakod_redis:6379/0
+      - QDRANT_URL=http://advakod_qdrant:6333
+      - REDIS_URL=redis://advakod_redis:6379
+      - VISTRAL_MODEL_PATH=/opt/advakod/models/vistral/Vistral-24B-Instruct-Q5_0.gguf
+      - VISTRAL_N_CTX=4096
+      - VISTRAL_N_THREADS=6
+      - VISTRAL_MAX_CONCURRENCY=1
+      - VISTRAL_INFERENCE_TIMEOUT=300
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+      - ./static:/app/static
+      - ./media:/app/media
+      - /opt/advakod/models:/opt/advakod/models:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    image: advakod-backend:latest
+    container_name: advakod_celery_beat
+    command: sh -c "mkdir -p /tmp && celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@host.docker.internal:5432/advakod_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - CELERY_BROKER_URL=redis://advakod_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://advakod_redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build: 
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: https://advacodex.com/api/v1
+        REACT_APP_WS_URL: wss://advacodex.com/ws
+    container_name: advakod_frontend
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  # Codes System (if needed)
+  codes-system:
+    build: 
+      context: .
+      dockerfile: docker/codes-downloader.Dockerfile
+    container_name: advakod-codes-system
+    environment:
+      - POSTGRES_HOST=advakod-postgres-codes
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=codes_db
+      - POSTGRES_USER=codes_user
+      - POSTGRES_PASSWORD=codes_password
+    depends_on:
+      - postgres-codes
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  # PostgreSQL for Codes System
+  postgres-codes:
+    image: postgres:15-alpine
+    container_name: advakod-postgres-codes
+    environment:
+      - POSTGRES_DB=codes_db
+      - POSTGRES_USER=codes_user
+      - POSTGRES_PASSWORD=codes_password
+    volumes:
+      - postgres_codes_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codes_user -d codes_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Сервис автоматического резервного копирования
+  backup:
+    image: alpine:latest
+    container_name: advakod_backup
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_SCHEDULE=0 2 * * *
+    command: >
+      sh -c "
+        apk add --no-cache curl jq bc bash docker-cli postgresql-client;
+        chmod +x /scripts/*.sh;
+        echo '🚀 Backup service started';
+        while true; do
+          sleep 3600;
+          echo '⏰ Running scheduled backup...';
+          /scripts/backup_all.sh || echo '❌ Backup failed';
+        done
+      "
+    restart: unless-stopped
+    networks:
+      - advakod_default
+    depends_on:
+      - qdrant
+      - redis
+
+volumes:
+  postgres_codes_data:
+  qdrant_data:
+  redis_data:
+
+networks:
+  advakod_default:
+    driver: bridge

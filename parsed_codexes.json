@@ -1,0 +1,185 @@
+{
+  "Тексты правовых актов": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru"
+    ],
+    "keywords": []
+  },
+  "Гражданский кодекс РФ": {
+    "priority": 1,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=ba747b7c430fdfb9405741d818463a26af1577a680f7a9ab6318cc6f4faa1121&ttl=1",
+      "http://actual.pravo.gov.ru/content/content.html#hash=4420d99c9eb3a210be9c946b1668b59acfb944f1129f0beaf1bd82d03449122c&ttl=1",
+      "http://actual.pravo.gov.ru/content/content.html#hash=c5515b06c932bdfbd67b34f5b856bb8317deaabded3eacae2ebadfd4c6703785&ttl=1",
+      "http://actual.pravo.gov.ru/content/content.html#hash=3edc1b4f0e70ca1c9191422c7c01743f4316210d72f59b4a45581dd70060fb13&ttl=1"
+    ],
+    "keywords": [
+      "51-ФЗ",
+      "гражданский кодекс",
+      "гк рф"
+    ]
+  },
+  "Налоговый кодекс РФ": {
+    "priority": 1,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=6d30a92f830312a1b62d0a002c635c3e667c52e1059a82525dd65cb8e2bbe0a6&ttl=1",
+      "http://actual.pravo.gov.ru/content/content.html#hash=b113c2e08341853ef53a8dad4585b513d96f85e0f3d0d246a25ecf52e40608db&ttl=1"
+    ],
+    "keywords": [
+      "нк рф",
+      "налоговый кодекс",
+      "146-ФЗ"
+    ]
+  },
+  "Трудовой кодекс РФ": {
+    "priority": 1,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=03bdee8f44a71247d7ba3342484326dbc3fa292d3caae9f88ada4b1ee38c20d9&ttl=1"
+    ],
+    "keywords": [
+      "197-ФЗ",
+      "трудовой кодекс",
+      "тк рф"
+    ]
+  },
+  "Кодекс Российской Федерации": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=6639c6c6580e8aa0bdf84170d25823669dfb6a4144b03da245ef4889f24765c0&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Кодекс административного судопроизводства РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=301b8e7807e422d78de841e939939cb07d46851f945e2039d13fa8b38623557f&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Градостроительный кодекс РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=fc01bd4ee09272d641c80b86f8be9f750ca1137e1402dd267b5b991e64ad45b1&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Гражданский процессуальный кодекс РФ": {
+    "priority": 1,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=34099dcc0eb7647de8e2af5a8ff35414410745ba6b4f742a81842946c1a6670e&ttl=1"
+    ],
+    "keywords": [
+      "51-ФЗ",
+      "гражданский кодекс",
+      "гк рф"
+    ]
+  },
+  "Арбитражный процессуальный кодекс РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=2464a0020ca4de3955dedd4369ba3d1bbbc846a28422a1b7c06ff6098086e8c3&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Уголовный кодекс РФ": {
+    "priority": 1,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=f29a592d348b400651a6760273edea9dfcbb75f4d56777c1c5b99233244b404c&ttl=1"
+    ],
+    "keywords": [
+      "ук рф",
+      "63-ФЗ",
+      "уголовный кодекс"
+    ]
+  },
+  "Уголовно-процессуальный кодекс РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=fe66afca01e13d9cd5c9372505774708c90daa44c9410084df9c1b64e0635a03&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Уголовно-исполнительный кодекс Российской": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=7f2d72fdcce53161ff2e24ed5f79b59257bb81285e5e7a77c33b32bc88d32848&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Земельный кодекс РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=f7e8a05ab96295ade2be3c550c15fdb66646f0b16f0f65c5aad57b59577acb74&ttl=1 "
+    ],
+    "keywords": [
+      "136-ФЗ",
+      "зк рф",
+      "земельный кодекс"
+    ]
+  },
+  "Жилищный кодекс РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=8b4a1920bd1b392ecc9684dc74ddebb02da5af465df06bc4a7ff8c2baf3915ce&ttl=1"
+    ],
+    "keywords": [
+      "жилищный кодекс",
+      "жк рф",
+      "188-ФЗ"
+    ]
+  },
+  "Семейный кодекс РФ": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=67c8f9935a6c27bd4075a7e8c1965e7acabbdf019e8dcf764d9203a17ddfcf67&ttl=1"
+    ],
+    "keywords": [
+      "223-ФЗ",
+      "ск рф",
+      "семейный кодекс"
+    ]
+  },
+  "Водный кодекс Российской": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=22ab398631ebf15f4c8e7cfbc229e36cd2c98f61dd095934c64eb2106d370190&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Лесной кодекс Российской": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=d7e701370b68103b6266adeef0600c62b8fdd7c8517eb57fcfdf22995ab90958&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Воздушный кодекс Российской": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=24690944a51bce854e2e6669730e80e6290a77c2c2b574149c999989143e3a0c&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Бюджетный кодекс Российской": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=1e6024ba3941a2db83058b219a73643f87ad32f9f6bb5c9fd9b4bcb5aaa3f979&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Кодекс внутреннего водного": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=1e0511819057ac27ce824e6862488cd24ce5a98760c6aa2116112515fd7fd3d0&ttl=1"
+    ],
+    "keywords": []
+  },
+  "Кодекс торгового мореплавания": {
+    "priority": 2,
+    "urls": [
+      "http://actual.pravo.gov.ru/content/content.html#hash=779dc3826f8590b9834ef488b94ccf833f26cde0f112edc741f9becd629adf96&ttl=1"
+    ],
+    "keywords": []
+  }
+}

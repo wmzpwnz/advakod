@@ -1,0 +1,37 @@
+# ТОЛЬКО критичные секреты - НЕ КОММИТИТЬ!
+.env
+.env.*
+!env.example
+!env.production.template
+env.production
+env.prod.example
+
+# SSL сертификаты с ключами
+*.pem
+*.key
+*.crt
+ssl/
+
+# Большие файлы баз данных
+*.sqlite3
+*.db
+backend/data/chroma_db/
+
+# Зависимости (слишком большие для git)
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Логи (могут быть большими)
+*.log
+logs/
+
+# Большие бинарные файлы
+*.so
+*.bin
+*.safetensors
+*.gguf
+*.onnx

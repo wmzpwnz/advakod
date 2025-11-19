@@ -1,0 +1,22 @@
+=== ОТЧЕТ О РЕЗЕРВНОМ КОПИРОВАНИИ АДВАКОД ===
+Дата: 2025-10-29 01:50:38
+Система: PostgreSQL
+
+=== СТАТИСТИКА БЭКАПОВ ===
+Общее количество бэкапов: 3
+Общий размер: 64.0K
+
+=== ПОСЛЕДНИЕ 5 БЭКАПОВ ===
+2025-10-29 01:49:33 - advakod_postgres_20251029_014933.sql.gz - 
+2025-10-29 01:50:14 - advakod_postgres_20251029_015013.sql.gz - 
+2025-10-29 01:50:38 - advakod_postgres_20251029_015038.sql.gz - 
+
+=== СТАТУС БАЗЫ ДАННЫХ ===
+ schemaname |   tablename    |    size    
+------------+----------------+------------
+ public     | users          | 96 kB
+ public     | token_balances | 40 kB
+ public     | chat_messages  | 16 kB
+ public     | chat_sessions  | 8192 bytes
+(4 rows)
+

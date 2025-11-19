@@ -1,0 +1,201 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: advakod_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.strict.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./static:/app/static:ro
+      - ./media:/app/media:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  backend:
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    container_name: advakod_backend
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - QDRANT_URL=${QDRANT_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS}
+      - ADMIN_IP_WHITELIST=${ADMIN_IP_WHITELIST}
+      - VISTRAL_MODEL_PATH=${VISTRAL_MODEL_PATH}
+      - VISTRAL_N_CTX=${VISTRAL_N_CTX}
+      - VISTRAL_N_THREADS=${VISTRAL_N_THREADS}
+      - VISTRAL_MAX_CONCURRENCY=${VISTRAL_MAX_CONCURRENCY}
+      - VISTRAL_INFERENCE_TIMEOUT=${VISTRAL_INFERENCE_TIMEOUT}
+      - VISTRAL_N_GPU_LAYERS=${VISTRAL_N_GPU_LAYERS}
+      - VISTRAL_TOKEN_MARGIN=${VISTRAL_TOKEN_MARGIN}
+      - VISTRAL_REPEAT_PENALTY=${VISTRAL_REPEAT_PENALTY}
+      - VISTRAL_TEMPERATURE=${VISTRAL_TEMPERATURE}
+      - VISTRAL_TOP_P=${VISTRAL_TOP_P}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - CACHE_TTL_DEFAULT=${CACHE_TTL_DEFAULT}
+      - CACHE_TTL_AI_RESPONSE=${CACHE_TTL_AI_RESPONSE}
+      - CACHE_TTL_USER_PROFILE=${CACHE_TTL_USER_PROFILE}
+      - AI_DOCUMENT_ANALYSIS_TIMEOUT=${AI_DOCUMENT_ANALYSIS_TIMEOUT}
+      - AI_CHAT_RESPONSE_TIMEOUT=${AI_CHAT_RESPONSE_TIMEOUT}
+      - AI_COMPLEX_ANALYSIS_TIMEOUT=${AI_COMPLEX_ANALYSIS_TIMEOUT}
+      - AI_EMBEDDINGS_TIMEOUT=${AI_EMBEDDINGS_TIMEOUT}
+      - AI_DOCUMENT_ANALYSIS_TOKENS=${AI_DOCUMENT_ANALYSIS_TOKENS}
+      - AI_CHAT_RESPONSE_TOKENS=${AI_CHAT_RESPONSE_TOKENS}
+      - AI_COMPLEX_ANALYSIS_TOKENS=${AI_COMPLEX_ANALYSIS_TOKENS}
+      - AI_EMBEDDINGS_TOKENS=${AI_EMBEDDINGS_TOKENS}
+    env_file:
+      - .env
+    volumes:
+      - ./static:/app/static
+      - ./media:/app/media
+      - /opt/advakod/models:/opt/advakod/models:ro
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    depends_on:
+      - postgres
+      - qdrant
+      - redis
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  celery_worker:
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    container_name: advakod_celery_worker
+    command: celery -A app.core.celery_app worker --loglevel=info --queues=default,ai_processing,email,file_processing,analytics,high_priority
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - CELERY_BROKER_URL=redis://advakod_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://advakod_redis:6379/0
+      - QDRANT_URL=${QDRANT_URL}
+      - REDIS_URL=${REDIS_URL}
+      - VISTRAL_MODEL_PATH=${VISTRAL_MODEL_PATH}
+      - VISTRAL_N_CTX=${VISTRAL_N_CTX}
+      - VISTRAL_N_THREADS=${VISTRAL_N_THREADS}
+      - VISTRAL_MAX_CONCURRENCY=1
+      - VISTRAL_INFERENCE_TIMEOUT=${VISTRAL_INFERENCE_TIMEOUT}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    env_file:
+      - .env
+    volumes:
+      - ./static:/app/static
+      - ./media:/app/media
+      - /opt/advakod/models:/opt/advakod/models:ro
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  celery_beat:
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    container_name: advakod_celery_beat
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - CELERY_BROKER_URL=redis://advakod_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://advakod_redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  frontend:
+    image: ${FRONTEND_IMAGE}:${IMAGE_TAG}
+    container_name: advakod_frontend
+    environment:
+      - REACT_APP_API_URL=https://advacodex.com/api/v1
+      - REACT_APP_WS_URL=wss://advacodex.com/ws
+    depends_on:
+      - backend
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: advakod_postgres
+    environment:
+      - POSTGRES_DB=advakod_db
+      - POSTGRES_USER=advakod
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./backups:/backups
+    expose:
+      - "5432"
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: advakod_qdrant
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - advakod_default
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: advakod_redis
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - advakod_default
+    restart: unless-stopped
+    command: >
+      redis-server \
+      --appendonly yes \
+      --maxmemory 4gb \
+      --maxmemory-policy allkeys-lru \
+      --save 900 1 \
+      --save 300 10 \
+      --save 60 10000 \
+      --loglevel notice \
+      --timeout 300 \
+      --tcp-keepalive 60
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  redis_data:
+
+networks:
+  advakod_default:
+    driver: bridge

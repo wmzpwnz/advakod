@@ -1,0 +1,263 @@
+{
+  "overall_success": false,
+  "validation_duration": 4.1960413455963135,
+  "prerequisites": {
+    "docker": true,
+    "docker_compose": true,
+    "compose_file_exists": true,
+    "python_deps": true
+  },
+  "services_ready": true,
+  "docker_validation": {
+    "success": false,
+    "output": "2025-10-30 16:07:29,700 - INFO - 🚀 Starting Docker Deployment Validation\n2025-10-30 16:07:29,701 - INFO - Compose file: docker-compose.prod.yml\n2025-10-30 16:07:29,701 - INFO - 🐳 Checking Docker Compose services...\n2025-10-30 16:07:29,788 - INFO - ✅ nginx: Running and healthy\n2025-10-30 16:07:29,788 - INFO - ✅ postgres: Running and healthy\n2025-10-30 16:07:29,788 - INFO - ❌ qdrant: Running but unhealthy\n2025-10-30 16:07:29,788 - INFO - ✅ redis: Running and healthy\n2025-10-30 16:07:29,788 - INFO - ✅ backend: Running and healthy\n2025-10-30 16:07:29,788 - INFO - ❌ celery_worker: Running but unhealthy\n2025-10-30 16:07:29,788 - INFO - 🔄 celery_beat: Restarting\n2025-10-30 16:07:29,788 - INFO - ❌ frontend: Running but \n2025-10-30 16:07:33,114 - INFO - \n============================================================\n2025-10-30 16:07:33,114 - INFO - 📊 DOCKER VALIDATION SUMMARY\n2025-10-30 16:07:33,114 - INFO - ============================================================\n2025-10-30 16:07:33,114 - INFO - Deployment Status: DEGRADED\n2025-10-30 16:07:33,115 - INFO - Services: 4 healthy, 3 unhealthy, 0 missing\n2025-10-30 16:07:33,115 - INFO - ❌ Network connectivity: Some tests failed\n2025-10-30 16:07:33,115 - INFO -   ✅ nginx: Running and healthy\n2025-10-30 16:07:33,115 - INFO -   ✅ postgres: Running and healthy\n2025-10-30 16:07:33,115 - INFO -   ❌ qdrant: Running but unhealthy\n2025-10-30 16:07:33,115 - INFO -   ✅ redis: Running and healthy\n2025-10-30 16:07:33,115 - INFO -   ✅ backend: Running and healthy\n2025-10-30 16:07:33,115 - INFO -   ❌ celery_worker: Running but unhealthy\n2025-10-30 16:07:33,115 - INFO -   🔄 celery_beat: Restarting\n2025-10-30 16:07:33,115 - INFO -   ❌ frontend: Running but \n2025-10-30 16:07:33,115 - WARNING - ⚠️  nginx has 4 errors in recent logs\n2025-10-30 16:07:33,115 - INFO - ⏱️  Validation completed in 3.41s\n2025-10-30 16:07:33,115 - INFO - 📄 Docker validation report saved to docker_validation_report.json\n",
+    "report_file": "docker_validation_report.json",
+    "detailed_report": {
+      "deployment_status": "degraded",
+      "services": {
+        "total": 8,
+        "healthy": 4,
+        "unhealthy": 3,
+        "missing": 0,
+        "details": [
+          {
+            "name": "nginx",
+            "status": "healthy",
+            "container_id": "39131bd8cea2",
+            "image": "nginx:alpine",
+            "uptime": "45 minutes ago",
+            "message": "Running and healthy",
+            "health_check": "healthy"
+          },
+          {
+            "name": "postgres",
+            "status": "healthy",
+            "container_id": "0cf064c48357",
+            "image": "postgres:15-alpine",
+            "uptime": "45 minutes ago",
+            "message": "Running and healthy",
+            "health_check": "healthy"
+          },
+          {
+            "name": "qdrant",
+            "status": "unhealthy",
+            "container_id": "5b282c7c8ca3",
+            "image": "qdrant/qdrant:v1.7.0",
+            "uptime": "45 minutes ago",
+            "message": "Running but unhealthy",
+            "health_check": "unhealthy"
+          },
+          {
+            "name": "redis",
+            "status": "healthy",
+            "container_id": "5708f8be1f33",
+            "image": "redis:alpine",
+            "uptime": "45 minutes ago",
+            "message": "Running and healthy",
+            "health_check": "healthy"
+          },
+          {
+            "name": "backend",
+            "status": "healthy",
+            "container_id": "667dbdc4d75d",
+            "image": "advakod-backend",
+            "uptime": "45 minutes ago",
+            "message": "Running and healthy",
+            "health_check": "healthy"
+          },
+          {
+            "name": "celery_worker",
+            "status": "unhealthy",
+            "container_id": "0e8abaf3677b",
+            "image": "advakod-celery_worker",
+            "uptime": "15 hours ago",
+            "message": "Running but unhealthy",
+            "health_check": "unhealthy"
+          },
+          {
+            "name": "celery_beat",
+            "status": "starting",
+            "container_id": "f09c20fa471b",
+            "image": "advakod-celery_beat",
+            "uptime": "15 hours ago",
+            "message": "Restarting",
+            "health_check": ""
+          },
+          {
+            "name": "frontend",
+            "status": "unhealthy",
+            "container_id": "957ca63de342",
+            "image": "advakod-frontend",
+            "uptime": "15 hours ago",
+            "message": "Running but ",
+            "health_check": ""
+          }
+        ]
+      },
+      "logs": {
+        "backend": {
+          "success": true,
+          "total_lines": 50,
+          "error_count": 0,
+          "recent_errors": [],
+          "has_errors": false
+        },
+        "nginx": {
+          "success": true,
+          "total_lines": 50,
+          "error_count": 4,
+          "recent_errors": [
+            "advakod_nginx  | 2025/10/30 12:55:46 [error] 31#31: *274 open() \"/etc/nginx/html/sw.js\" failed (2: No such file or directory), client: 193.233.106.104, server: advacodex.com, request: \"GET /sw.js HTTP/2.0\", host: \"advacodex.com\", referrer: \"https://advacodex.com/sw.js\"",
+            "advakod_nginx  | 2025/10/30 12:55:46 [error] 31#31: *274 open() \"/usr/share/nginx/html/404.html\" failed (2: No such file or directory), client: 193.233.106.104, server: advacodex.com, request: \"GET /sw.js HTTP/2.0\", host: \"advacodex.com\", referrer: \"https://advacodex.com/sw.js\"",
+            "advakod_nginx  | 2025/10/30 13:01:35 [error] 31#31: *354 open() \"/etc/nginx/html/favicon.ico\" failed (2: No such file or directory), client: 213.87.128.66, server: advacodex.com, request: \"GET /favicon.ico HTTP/2.0\", host: \"advacodex.com\"",
+            "advakod_nginx  | 2025/10/30 13:01:35 [error] 31#31: *354 open() \"/usr/share/nginx/html/404.html\" failed (2: No such file or directory), client: 213.87.128.66, server: advacodex.com, request: \"GET /favicon.ico HTTP/2.0\", host: \"advacodex.com\""
+          ],
+          "has_errors": true
+        },
+        "postgres": {
+          "success": true,
+          "total_lines": 21,
+          "error_count": 0,
+          "recent_errors": [],
+          "has_errors": false
+        }
+      },
+      "resources": {
+        "success": true,
+        "containers": {}
+      },
+      "network": {
+        "tests": [
+          {
+            "test": "backend-to-postgres",
+            "success": false,
+            "message": "Failed: OCI runtime exec failed: exec failed: unable to start container process: exec: \"nc\": executable file not found in $PATH: unknown"
+          },
+          {
+            "test": "backend-to-redis",
+            "success": false,
+            "message": "Failed: OCI runtime exec failed: exec failed: unable to start container process: exec: \"nc\": executable file not found in $PATH: unknown"
+          },
+          {
+            "test": "backend-to-qdrant",
+            "success": false,
+            "message": "Failed: OCI runtime exec failed: exec failed: unable to start container process: exec: \"nc\": executable file not found in $PATH: unknown"
+          }
+        ],
+        "all_passed": false
+      },
+      "validation_duration": 3.4136435985565186,
+      "timestamp": 1761829653.1147566
+    }
+  },
+  "application_validation": {
+    "success": false,
+    "output": "2025-10-30 16:07:33,370 - INFO - 🚀 Starting Production Deployment Validation\n2025-10-30 16:07:33,370 - INFO - Target: http://localhost:8000 (domain: localhost)\n2025-10-30 16:07:33,370 - INFO - \n📋 Testing Complete System Functionality (11.1)\n2025-10-30 16:07:33,381 - INFO - ✅ Service Startup - Health Check: Backend service is healthy (version: 1.0.0) (0.01s)\n2025-10-30 16:07:33,387 - INFO - ✅ Service Startup - Readiness Check: All services ready (AI Model: not loaded) (0.01s)\n2025-10-30 16:07:33,392 - INFO - ❌ AI Model Health: AI model is unhealthy: unknown (0.00s)\n2025-10-30 16:07:33,406 - INFO - ❌ Database Connectivity: Database connection may be failing (500 error) (0.01s)\n2025-10-30 16:07:33,429 - INFO - ✅ API Endpoints: All 4 critical endpoints responding (0.02s)\n2025-10-30 16:07:33,476 - INFO - ❌ AI Response Generation: Could not authenticate test user (0.05s)\n2025-10-30 16:07:33,505 - INFO - ❌ WebSocket Communication: Could not authenticate for WebSocket test (0.03s)\n2025-10-30 16:07:33,506 - INFO - \n🌐 Testing Production Environment (11.2)\n2025-10-30 16:07:33,506 - INFO - ⏭️ Production Domain Test: Skipped - testing on localhost (0.00s)\n2025-10-30 16:07:33,506 - INFO - ⏭️ HTTPS/WSS Connections: Skipped - testing on localhost (no SSL) (0.00s)\n2025-10-30 16:07:33,526 - INFO - ❌ Static Files Loading: No static files could be loaded. Failed: /static/css/main.css (status: 404), /static/js/main.js (status: 404), /static/favicon.ico (status: 404) (0.02s)\n2025-10-30 16:07:33,526 - INFO - \n============================================================\n2025-10-30 16:07:33,526 - INFO - 📊 VALIDATION SUMMARY\n2025-10-30 16:07:33,526 - INFO - ============================================================\n2025-10-30 16:07:33,526 - INFO - Total Tests: 10\n2025-10-30 16:07:33,526 - INFO - ✅ Passed: 3\n2025-10-30 16:07:33,526 - INFO - ⚠️  Warnings: 0\n2025-10-30 16:07:33,526 - INFO - ❌ Failed: 5\n2025-10-30 16:07:33,526 - INFO - ⏭️  Skipped: 2\n2025-10-30 16:07:33,526 - INFO - ⏱️  Total Duration: 0.16s\n2025-10-30 16:07:33,526 - INFO - 🎯 Success Rate: 30.0%\n2025-10-30 16:07:33,526 - INFO - \n❌ DEPLOYMENT HAS SIGNIFICANT ISSUES - REVIEW REQUIRED\n2025-10-30 16:07:33,527 - INFO - 📄 Detailed report saved to app_validation_report.json\n",
+    "report_file": "app_validation_report.json",
+    "detailed_report": {
+      "total_tests": 10,
+      "passed": 3,
+      "failed": 5,
+      "warnings": 0,
+      "skipped": 2,
+      "success_rate": 30.0,
+      "total_duration": 0,
+      "results": [
+        {
+          "name": "Service Startup - Health Check",
+          "status": "PASSED",
+          "message": "Backend service is healthy (version: 1.0.0)",
+          "duration": 0.010229349136352539,
+          "details": {
+            "status": "healthy",
+            "service": "ai-lawyer-backend",
+            "version": "1.0.0",
+            "timestamp": 1761829653.378337
+          }
+        },
+        {
+          "name": "Service Startup - Readiness Check",
+          "status": "PASSED",
+          "message": "All services ready (AI Model: not loaded)",
+          "duration": 0.006307840347290039,
+          "details": {
+            "ready": true,
+            "system_status": "degraded",
+            "services": {
+              "total": 2,
+              "healthy": 1,
+              "degraded": 0,
+              "unhealthy": 1
+            },
+            "monitoring": {
+              "status": "healthy",
+              "metrics_count": 24,
+              "active_alerts": 0
+            },
+            "uptime": 2742.629319667816,
+            "last_check": "2025-10-30T13:07:33.383209"
+          }
+        },
+        {
+          "name": "AI Model Health",
+          "status": "FAILED",
+          "message": "AI model is unhealthy: unknown",
+          "duration": 0.004347562789916992,
+          "details": {
+            "detail": "Not Found"
+          }
+        },
+        {
+          "name": "Database Connectivity",
+          "status": "FAILED",
+          "message": "Database connection may be failing (500 error)",
+          "duration": 0.014327526092529297,
+          "details": null
+        },
+        {
+          "name": "API Endpoints",
+          "status": "PASSED",
+          "message": "All 4 critical endpoints responding",
+          "duration": 0.02270960807800293,
+          "details": null
+        },
+        {
+          "name": "AI Response Generation",
+          "status": "FAILED",
+          "message": "Could not authenticate test user",
+          "duration": 0.04635787010192871,
+          "details": null
+        },
+        {
+          "name": "WebSocket Communication",
+          "status": "FAILED",
+          "message": "Could not authenticate for WebSocket test",
+          "duration": 0.029249191284179688,
+          "details": null
+        },
+        {
+          "name": "Production Domain Test",
+          "status": "SKIPPED",
+          "message": "Skipped - testing on localhost",
+          "duration": 0.0,
+          "details": null
+        },
+        {
+          "name": "HTTPS/WSS Connections",
+          "status": "SKIPPED",
+          "message": "Skipped - testing on localhost (no SSL)",
+          "duration": 0.0,
+          "details": null
+        },
+        {
+          "name": "Static Files Loading",
+          "status": "FAILED",
+          "message": "No static files could be loaded. Failed: /static/css/main.css (status: 404), /static/js/main.js (status: 404), /static/favicon.ico (status: 404)",
+          "duration": 0.01989006996154785,
+          "details": null
+        }
+      ]
+    }
+  },
+  "timestamp": 1761829653.5675318
+}

@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  codes-system:
+    build:
+      context: .
+      dockerfile: docker/codes-downloader.Dockerfile
+    container_name: advakod-codes-system
+    volumes:
+      - ./data/legal_documents:/app/data/legal_documents
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - advakod-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+    command: ["python", "/app/scripts/start_codes_system.py"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: advakod-redis-codes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_codes_data:/data
+    networks:
+      - advakod-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: advakod-postgres-codes
+    environment:
+      - POSTGRES_DB=advakod_codes
+      - POSTGRES_USER=advakod
+      - POSTGRES_PASSWORD=advakod_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_codes_data:/var/lib/postgresql/data
+    networks:
+      - advakod-network
+    restart: unless-stopped
+
+  # Веб-интерфейс для мониторинга (опционально)
+  codes-monitor-web:
+    image: nginx:alpine
+    container_name: advakod-codes-monitor-web
+    ports:
+      - "8081:80"
+    volumes:
+      - ./monitoring/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs:/var/log/nginx
+    networks:
+      - advakod-network
+    restart: unless-stopped
+    depends_on:
+      - codes-system
+
+volumes:
+  redis_codes_data:
+  postgres_codes_data:
+
+networks:
+  advakod-network:
+    external: true

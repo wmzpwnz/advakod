@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-10-27T21:59:07.676830",
+  "new_files_count": 5,
+  "processed_files": 0,
+  "created_chunks": 0,
+  "validation_results": {
+    "total_files": 5,
+    "valid_files": 0
+  },
+  "integration_results": {
+    "timestamp": "2025-10-27T21:59:07.676316",
+    "summary": {
+      "total_documents_processed": 0,
+      "total_chunks_created": 0,
+      "successful_integrations": 0,
+      "failed_integrations": 0
+    },
+    "integration_results": [],
+    "output_directory": "/root/advakod/unified_codexes/rag_integration"
+  },
+  "status": "success"
+}

@@ -1,0 +1,88 @@
+{
+  "timestamp": "2025-09-27T04:16:28.626440",
+  "summary": {
+    "total_tests": 6,
+    "passed_tests": 5,
+    "failed_tests": 1,
+    "success_rate": 83.33333333333334
+  },
+  "detailed_results": {
+    "H-01: Legal Text Chunking": {
+      "passed": true,
+      "details": {
+        "chunks_count": 2,
+        "checks": {
+          "chunks_created": true,
+          "articles_recognized": true,
+          "hierarchy_preserved": true,
+          "metadata_present": true
+        },
+        "sample_chunk": "{'id': 'a4fd6f89:chunk:0:01626efd', 'content': 'Статья 1. Основные понятия\\n            \\n            Часть 1. Для целей настоящего Федерального закона используются следующие основные понятия:\\n            1) персональные данные - любая информация;\\n            2) оператор - государственный орган;', 'chunk_type': <LegalStructureType.ARTICLE: 'article'>, 'hierarchy': {'code': None, 'section': None, 'chapter': None, 'article': '1', 'part': '1', 'paragraph': '1', 'item': None}, 'token_count': 61, 'start_pos': 13, 'end_pos': 285, 'parent_id': None, 'children_ids': [], 'metadata': {'chunk_index': 0, 'content_hash': '01626efd', 'doc_signature': 'a4fd6f89', 'created_at': '2025-09-27T04:16:17.348913'}}"
+      }
+    },
+    "H-02: RRF Ranking": {
+      "passed": true,
+      "details": {
+        "checks": {
+          "service_exists": true,
+          "rrf_method_exists": true,
+          "service_initialized": true
+        },
+        "methods_available": [
+          "_combine_and_rank_results",
+          "_rerank_results",
+          "_update_average_rerank_time"
+        ]
+      }
+    },
+    "H-04: Date Filtering": {
+      "passed": true,
+      "details": {
+        "checks": {
+          "normalize_date": true,
+          "create_date_filter": true,
+          "parse_russian_date": true,
+          "date_processing_works": true,
+          "vector_store_updated": true
+        }
+      }
+    },
+    "M-04: Readiness Gating": {
+      "passed": true,
+      "details": {
+        "checks": {
+          "middleware_imported": true,
+          "middleware_file_exists": true
+        }
+      }
+    },
+    "M-01: LoRA Hyperparameters": {
+      "passed": false,
+      "details": {
+        "checks": {
+          "config_module_imported": true,
+          "config_generated": true,
+          "has_lora_config": true,
+          "has_metadata": true,
+          "legal_tasks_available": true,
+          "service_updated": false
+        }
+      }
+    },
+    "Integration Test": {
+      "passed": true,
+      "details": {
+        "checks": {
+          "files_created": true,
+          "import_legal_chunker": true,
+          "import_date_utils": true,
+          "import_optimized_lora_config": true,
+          "import_readiness": true,
+          "all_modules_imported": true
+        },
+        "files_found": "4/4",
+        "modules_imported": "4/4"
+      }
+    }
+  }
+}

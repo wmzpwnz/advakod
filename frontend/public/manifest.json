@@ -1,0 +1,12 @@
+{
+  "short_name": "ИИ-Юрист",
+  "name": "ИИ-Юрист для РФ - AI-правовед 24/7",
+  "icons": [],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1f6feb",
+  "description": "Ваш персональный AI-правовед 24/7"
+}
+
+

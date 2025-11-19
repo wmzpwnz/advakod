@@ -1,0 +1,104 @@
+{
+  "total_tests": 10,
+  "passed": 3,
+  "failed": 5,
+  "warnings": 0,
+  "skipped": 2,
+  "success_rate": 30.0,
+  "total_duration": 0,
+  "results": [
+    {
+      "name": "Service Startup - Health Check",
+      "status": "PASSED",
+      "message": "Backend service is healthy (version: 1.0.0)",
+      "duration": 0.010229349136352539,
+      "details": {
+        "status": "healthy",
+        "service": "ai-lawyer-backend",
+        "version": "1.0.0",
+        "timestamp": 1761829653.378337
+      }
+    },
+    {
+      "name": "Service Startup - Readiness Check",
+      "status": "PASSED",
+      "message": "All services ready (AI Model: not loaded)",
+      "duration": 0.006307840347290039,
+      "details": {
+        "ready": true,
+        "system_status": "degraded",
+        "services": {
+          "total": 2,
+          "healthy": 1,
+          "degraded": 0,
+          "unhealthy": 1
+        },
+        "monitoring": {
+          "status": "healthy",
+          "metrics_count": 24,
+          "active_alerts": 0
+        },
+        "uptime": 2742.629319667816,
+        "last_check": "2025-10-30T13:07:33.383209"
+      }
+    },
+    {
+      "name": "AI Model Health",
+      "status": "FAILED",
+      "message": "AI model is unhealthy: unknown",
+      "duration": 0.004347562789916992,
+      "details": {
+        "detail": "Not Found"
+      }
+    },
+    {
+      "name": "Database Connectivity",
+      "status": "FAILED",
+      "message": "Database connection may be failing (500 error)",
+      "duration": 0.014327526092529297,
+      "details": null
+    },
+    {
+      "name": "API Endpoints",
+      "status": "PASSED",
+      "message": "All 4 critical endpoints responding",
+      "duration": 0.02270960807800293,
+      "details": null
+    },
+    {
+      "name": "AI Response Generation",
+      "status": "FAILED",
+      "message": "Could not authenticate test user",
+      "duration": 0.04635787010192871,
+      "details": null
+    },
+    {
+      "name": "WebSocket Communication",
+      "status": "FAILED",
+      "message": "Could not authenticate for WebSocket test",
+      "duration": 0.029249191284179688,
+      "details": null
+    },
+    {
+      "name": "Production Domain Test",
+      "status": "SKIPPED",
+      "message": "Skipped - testing on localhost",
+      "duration": 0.0,
+      "details": null
+    },
+    {
+      "name": "HTTPS/WSS Connections",
+      "status": "SKIPPED",
+      "message": "Skipped - testing on localhost (no SSL)",
+      "duration": 0.0,
+      "details": null
+    },
+    {
+      "name": "Static Files Loading",
+      "status": "FAILED",
+      "message": "No static files could be loaded. Failed: /static/css/main.css (status: 404), /static/js/main.js (status: 404), /static/favicon.ico (status: 404)",
+      "duration": 0.01989006996154785,
+      "details": null
+    }
+  ]
+}

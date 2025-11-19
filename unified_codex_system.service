@@ -1,0 +1,25 @@
+[Unit]
+Description=Unified Codex Downloader and Integrator Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/advakod
+ExecStart=/usr/bin/python3 /root/advakod/unified_codex_system.py background
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Переменные окружения
+Environment=PYTHONPATH=/root/advakod/backend
+Environment=PYTHONUNBUFFERED=1
+
+# Ограничения ресурсов
+MemoryMax=1G
+CPUQuota=40%
+
+[Install]
+WantedBy=multi-user.target
+

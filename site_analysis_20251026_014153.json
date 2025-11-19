@@ -1,0 +1,58 @@
+[
+  {
+    "url": "http://pravo.gov.ru",
+    "content_length": 89008,
+    "codex_links": [
+      "http://publication.pravo.gov.ru/documents/daily?block=government",
+      "http://publication.pravo.gov.ru/documents/monthly?block=president",
+      "http://publication.pravo.gov.ru/documents/daily?block=un_securitycouncil",
+      "http://publication.pravo.gov.ru/documents/daily?block=court",
+      "http://pravo.gov.ru/codex/",
+      "http://publication.pravo.gov.ru/documents/weekly?block=un_securitycouncil",
+      "http://publication.pravo.gov.ru/documents/monthly?block=international",
+      "http://publication.pravo.gov.ru/documents/monthly?block=subjects",
+      "http://publication.pravo.gov.ru/documents/daily?block=subjects",
+      "http://publication.pravo.gov.ru/documents/weekly?block=council_2",
+      "http://publication.pravo.gov.ru/documents/daily?block=federal_authorities",
+      "http://publication.pravo.gov.ru/documents/weekly?block=federal_authorities",
+      "http://publication.pravo.gov.ru/documents/weekly?block=subjects",
+      "http://publication.pravo.gov.ru/Document/View/0001202312280012",
+      "http://publication.pravo.gov.ru/Document/View/0001202004090029",
+      "http://publication.pravo.gov.ru/Document/View/2700202210040015",
+      "http://publication.pravo.gov.ru/documents/weekly?block=council_1",
+      "http://publication.pravo.gov.ru/Document/View/0001202209210001",
+      "http://publication.pravo.gov.ru/documents/weekly?block=president",
+      "http://publication.pravo.gov.ru/documents/monthly?block=federal_authorities",
+      "http://publication.pravo.gov.ru/documents/daily?block=international",
+      "http://publication.pravo.gov.ru/documents/daily?block=president",
+      "http://publication.pravo.gov.ru/documents/daily?block=council_1",
+      "http://publication.pravo.gov.ru/Document/View/0001202009250013",
+      "http://publication.pravo.gov.ru/documents/monthly?block=government",
+      "http://publication.pravo.gov.ru/documents/monthly?block=court",
+      "http://publication.pravo.gov.ru/documents/monthly?block=council_1",
+      "http://publication.pravo.gov.ru/documents/weekly?block=government",
+      "http://publication.pravo.gov.ru/documents/monthly?block=council_2",
+      "http://publication.pravo.gov.ru/documents/monthly?block=un_securitycouncil",
+      "http://publication.pravo.gov.ru/documents/daily?block=council_2",
+      "http://publication.pravo.gov.ru/documents/weekly?block=court",
+      "http://pravo.gov.ru/informatsionnyy-byulleten-sobranie-zakonodatelstva-rossiyskoy-federatsii/index.php",
+      "http://publication.pravo.gov.ru/documents/weekly?block=international"
+    ],
+    "document_links": [
+      "http://pravo.gov.ru/OpubVsootvetstvii/0001202203030006.pdf",
+      "http://pravo.gov.ru/OpubVsootvetstvii/198.pdf",
+      "http://pravo.gov.ru/OpubVsootvetstvii/0001201905010039.pdf",
+      "http://pravo.gov.ru/OpubVsootvetstvii/289-11.pdf",
+      "http://pravo.gov.ru/OpubVsootvetstvii/0001201410140002.pdf",
+      "http://pravo.gov.ru/OpubVsootvetstvii/254.pdf"
+    ],
+    "nav_links": []
+  },
+  {
+    "url": "http://pravo.gov.ru/search",
+    "content_length": 266340,
+    "codex_links": [],
+    "document_links": [],
+    "nav_links": []
+  }
+]

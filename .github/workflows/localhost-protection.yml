@@ -1,0 +1,199 @@
+name: Localhost Protection CI
+
+on:
+  push:
+    branches: [ main, develop, production ]
+  pull_request:
+    branches: [ main, develop, production ]
+
+jobs:
+  localhost-check:
+    runs-on: ubuntu-latest
+    name: Check for localhost references and debug code
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Make scripts executable
+      run: chmod +x scripts/check_localhost.sh
+      
+    - name: Run localhost protection check
+      run: |
+        echo "🔍 Running localhost protection checks..."
+        ./scripts/check_localhost.sh
+        
+    - name: Check for hardcoded secrets
+      run: |
+        echo "🔐 Checking for potential hardcoded secrets..."
+        
+        # Check for potential API keys, passwords, tokens
+        if grep -r -E "(api_key|password|secret|token|key).*=.*['\"][^'\"]{20,}" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=venv --exclude-dir=.git .; then
+          echo "❌ Potential hardcoded secrets found!"
+          exit 1
+        else
+          echo "✅ No hardcoded secrets detected"
+        fi
+        
+    - name: Validate environment files
+      run: |
+        echo "🌍 Validating environment files..."
+        
+        # Check that production env files don't have localhost
+        if [ -f ".env.production" ]; then
+          if grep -E "(localhost|127\.0\.0\.1)" .env.production; then
+            echo "❌ localhost found in .env.production!"
+            exit 1
+          fi
+        fi
+        
+        if [ -f "backend/.env" ]; then
+          if grep -E "(localhost|127\.0\.0\.1)" backend/.env; then
+            echo "❌ localhost found in backend/.env!"
+            exit 1
+          fi
+        fi
+        
+        echo "✅ Environment files validated"
+        
+    - name: Check Docker configurations
+      run: |
+        echo "🐳 Checking Docker configurations..."
+        
+        # Check docker-compose files for localhost
+        for file in docker-compose*.yml; do
+          if [ -f "$file" ]; then
+            if grep -E "(localhost|127\.0\.0\.1)" "$file" | grep -v -E "^[[:space:]]*#"; then
+              echo "❌ localhost found in $file!"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "✅ Docker configurations validated"
+
+  eslint-check:
+    runs-on: ubuntu-latest
+    name: ESLint production rules check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: Run ESLint with production rules
+      run: |
+        cd frontend
+        echo "🔍 Running ESLint with production rules..."
+        
+        # Use production ESLint config
+        npx eslint src/ --config .eslintrc.production.js --ext .js,.jsx,.ts,.tsx
+        
+        echo "✅ ESLint production rules passed"
+
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security and code quality scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for TODO/FIXME in production code
+      run: |
+        echo "📝 Checking for TODO/FIXME comments in production code..."
+        
+        # Find TODO/FIXME comments (excluding test files)
+        TODO_FILES=$(find . -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" | \
+                    grep -v -E "(test|spec|node_modules|venv|\.git)" | \
+                    xargs grep -l -i -E "(todo|fixme|hack|bug.*fix)" || true)
+        
+        if [ -n "$TODO_FILES" ]; then
+          echo "⚠️  TODO/FIXME comments found in:"
+          echo "$TODO_FILES"
+          echo ""
+          echo "Please resolve these before production deployment:"
+          for file in $TODO_FILES; do
+            echo "--- $file ---"
+            grep -n -i -E "(todo|fixme|hack|bug.*fix)" "$file" | head -3
+          done
+          # Don't fail the build, just warn
+          echo "⚠️  Warning: TODO/FIXME comments should be resolved"
+        else
+          echo "✅ No TODO/FIXME comments found"
+        fi
+        
+    - name: Check for console.log in JavaScript files
+      run: |
+        echo "🐛 Checking for console.log in JavaScript files..."
+        
+        CONSOLE_FILES=$(find frontend/src -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" | \
+                       grep -v -E "(test|spec)" | \
+                       xargs grep -l "console\.log" || true)
+        
+        if [ -n "$CONSOLE_FILES" ]; then
+          echo "❌ console.log found in production files:"
+          for file in $CONSOLE_FILES; do
+            echo "  - $file"
+            grep -n "console\.log" "$file" | head -3
+          done
+          exit 1
+        else
+          echo "✅ No console.log found in production files"
+        fi
+        
+    - name: Check for Python print statements
+      run: |
+        echo "🐛 Checking for print statements in Python files..."
+        
+        PRINT_FILES=$(find backend -name "*.py" | \
+                     grep -v -E "(test|venv|__pycache__)" | \
+                     xargs grep -l "print(" || true)
+        
+        if [ -n "$PRINT_FILES" ]; then
+          echo "❌ print() statements found in production files:"
+          for file in $PRINT_FILES; do
+            echo "  - $file"
+            grep -n "print(" "$file" | head -3
+          done
+          exit 1
+        else
+          echo "✅ No print() statements found in production files"
+        fi
+
+  final-validation:
+    runs-on: ubuntu-latest
+    name: Final production readiness check
+    needs: [localhost-check, eslint-check, security-scan]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Production readiness summary
+      run: |
+        echo "🎯 Production Readiness Summary"
+        echo "================================"
+        echo "✅ Localhost protection: PASSED"
+        echo "✅ ESLint production rules: PASSED" 
+        echo "✅ Security scan: PASSED"
+        echo ""
+        echo "🚀 Code is ready for production deployment!"
+        echo ""
+        echo "Deployment checklist:"
+        echo "- [ ] Environment variables configured"
+        echo "- [ ] SSL certificates ready"
+        echo "- [ ] Database migrations applied"
+        echo "- [ ] Monitoring configured"
+        echo "- [ ] Backup strategy in place"

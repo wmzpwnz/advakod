@@ -1,0 +1,38 @@
+# Git attributes для проекта ADVAKOD
+
+# Автоматическая нормализация окончаний строк
+* text=auto
+
+# Бинарные файлы
+*.bin binary
+*.gguf binary
+*.safetensors binary
+*.onnx binary
+*.pem binary
+*.key binary
+*.crt binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Архивы
+*.tar.gz binary
+*.zip binary
+*.7z binary
+
+# Изображения
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Шаблоны конфигурации должны быть текстовыми
+*.template text
+*.example text
+env.* text
+
+# Скрипты должны быть исполняемыми
+*.sh text eol=lf
+

@@ -1,0 +1,3854 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Light Theme - Primary Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  
+  /* Accent Colors - Apple Style */
+  --accent-blue: #007AFF;
+  --accent-blue-light: #40A9FF;
+  --accent-silver: #C7C7CC;
+  --accent-silver-light: #E5E5EA;
+  
+  /* Neon Glow - Purple-Cyan Palette */
+  --neon-purple: #8B5CF6;
+  --neon-cyan: #06B6D4;
+  --neon-purple-light: #A78BFA;
+  --neon-cyan-light: #22D3EE;
+  
+  /* Module Colors - Dark Theme */
+  --module-marketing: #f97316;
+  --module-marketing-light: #fed7aa;
+  --module-marketing-dark: #ea580c;
+  
+  --module-moderation: #8b5cf6;
+  --module-moderation-light: #ddd6fe;
+  --module-moderation-dark: #7c3aed;
+  
+  --module-project: #10b981;
+  --module-project-light: #a7f3d0;
+  --module-project-dark: #059669;
+  
+  --module-analytics: #3b82f6;
+  --module-analytics-light: #bfdbfe;
+  --module-analytics-dark: #2563eb;
+  
+  --module-system: #ef4444;
+  --module-system-light: #fecaca;
+  --module-system-dark: #dc2626;
+  
+  /* Text Colors */
+  --text-primary: #E5E5EA;
+  --text-secondary: #C7C7CC;
+  --text-tertiary: #8E8E93;
+  
+  /* Shimmer Gradients */
+  --shimmer-silver: linear-gradient(45deg, #8E8E93, #C7C7CC, #E5E5EA, #C7C7CC, #8E8E93);
+  --shimmer-blue: linear-gradient(45deg, #007AFF, #40A9FF, #007AFF);
+  --neon-glow-gradient: linear-gradient(45deg, #8B5CF6, #06B6D4, #A78BFA, #22D3EE);
+  
+  /* Typography - Apple Style */
+  --font-primary: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  
+  /* Font Sizes - Responsive with clamp */
+  --text-hero: clamp(3rem, 8vw, 6rem);
+  --text-title: clamp(2rem, 5vw, 3.5rem);
+  --text-subtitle: clamp(1.25rem, 3vw, 2rem);
+  --text-body: clamp(1rem, 2vw, 1.25rem);
+  
+  /* Font Weights */
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-primary);
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body.light {
+    background-color: #f9fafb;
+    color: #111827;
+  }
+  
+  /* Современная типографика */
+  .heading-1 {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  
+  .heading-2 {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+  
+  .heading-3 {
+    @apply text-2xl md:text-3xl font-semibold leading-tight;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  .body-large {
+    @apply text-lg md:text-xl font-normal leading-relaxed;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  .body-medium {
+    @apply text-base font-normal leading-relaxed;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  .body-small {
+    @apply text-sm font-normal leading-normal;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  .logo-font {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  
+  /* Screen Reader Only - Accessibility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  .sr-only:focus,
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
+@layer components {
+  /* Современные кнопки */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl shadow-lg;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-3 px-6 rounded-xl border border-gray-300 dark:border-gray-600 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg backdrop-blur-sm;
+  }
+  
+  .btn-ghost {
+    @apply text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-200;
+  }
+  
+  .btn-glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300 font-medium py-3 px-6 rounded-xl;
+  }
+  
+  .btn-glass-primary {
+    @apply bg-primary-500/15 backdrop-blur-lg border border-primary-300/40 text-primary-800 dark:text-primary-100 hover:bg-primary-500/25 dark:hover:bg-primary-400/25 transition-all duration-500 font-medium py-3 px-6 rounded-xl shadow-xl hover:shadow-2xl;
+    position: relative;
+    overflow: hidden;
+    animation: glassShimmer 3s ease-in-out infinite;
+  }
+  
+  .btn-glass-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    transition: left 0.8s;
+  }
+  
+  .btn-glass-primary:hover::before {
+    left: 100%;
+  }
+  
+  .btn-glass-primary::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+    animation: glassGlow 2s ease-in-out infinite alternate;
+  }
+  
+  .btn-glass-secondary {
+    @apply bg-gray-500/15 backdrop-blur-lg border border-gray-300/40 text-gray-800 dark:text-gray-100 hover:bg-gray-500/25 dark:hover:bg-gray-400/25 transition-all duration-500 font-medium py-3 px-6 rounded-xl shadow-xl hover:shadow-2xl;
+    position: relative;
+    overflow: hidden;
+    animation: glassShimmer 4s ease-in-out infinite;
+  }
+  
+  .btn-glass-secondary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.8s;
+  }
+  
+  .btn-glass-secondary:hover::before {
+    left: 100%;
+  }
+  
+  .btn-glass-secondary::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.08), transparent 70%);
+    animation: glassGlow 2.5s ease-in-out infinite alternate;
+  }
+  
+  .btn-glass-success {
+    @apply bg-green-500/15 backdrop-blur-lg border border-green-300/40 text-green-800 dark:text-green-100 hover:bg-green-500/25 dark:hover:bg-green-400/25 transition-all duration-500 font-medium py-3 px-6 rounded-xl shadow-xl hover:shadow-2xl;
+    position: relative;
+    overflow: hidden;
+    animation: glassShimmer 3.5s ease-in-out infinite;
+  }
+  
+  .btn-glass-success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    transition: left 0.8s;
+  }
+  
+  .btn-glass-success:hover::before {
+    left: 100%;
+  }
+  
+  .btn-glass-success::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.12), transparent 70%);
+    animation: glassGlow 2.2s ease-in-out infinite alternate;
+  }
+  
+  .btn-glass-danger {
+    @apply bg-red-500/15 backdrop-blur-lg border border-red-300/40 text-red-800 dark:text-red-100 hover:bg-red-500/25 dark:hover:bg-red-400/25 transition-all duration-500 font-medium py-3 px-6 rounded-xl shadow-xl hover:shadow-2xl;
+    position: relative;
+    overflow: hidden;
+    animation: glassShimmer 3.2s ease-in-out infinite;
+  }
+  
+  .btn-glass-danger::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    transition: left 0.8s;
+  }
+  
+  .btn-glass-danger:hover::before {
+    left: 100%;
+  }
+  
+  .btn-glass-danger::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1), transparent 70%);
+    animation: glassGlow 2.8s ease-in-out infinite alternate;
+  }
+  
+  .btn-glass-ghost {
+    @apply bg-white/5 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 text-gray-700 dark:text-gray-200 hover:bg-white/15 dark:hover:bg-gray-800/30 transition-all duration-500 font-medium py-3 px-6 rounded-xl shadow-lg hover:shadow-xl;
+    position: relative;
+    overflow: hidden;
+    animation: glassShimmer 5s ease-in-out infinite;
+  }
+  
+  .btn-glass-ghost::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.8s;
+  }
+  
+  .btn-glass-ghost:hover::before {
+    left: 100%;
+  }
+  
+  .btn-glass-ghost::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.05), transparent 70%);
+    animation: glassGlow 3.5s ease-in-out infinite alternate;
+  }
+  
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 ease-in-out;
+  }
+  
+  /* Современные карточки */
+  .card {
+    @apply bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105 backdrop-blur-sm;
+  }
+  
+  .card-glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-6 transition-all duration-300 ease-in-out hover:bg-white/20 hover:shadow-2xl;
+  }
+  
+  .card-neo {
+    @apply bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 transition-all duration-300 ease-in-out hover:shadow-xl;
+    box-shadow: 20px 20px 60px #bebebe, -20px -20px 60px #ffffff;
+  }
+  
+  .card-neo:hover {
+    box-shadow: inset 20px 20px 60px #bebebe, inset -20px -20px 60px #ffffff;
+  }
+  
+  .chat-message {
+    @apply p-4 rounded-lg mb-4 max-w-3xl transition-all duration-300 ease-in-out;
+  }
+  
+  .chat-message.user {
+    @apply bg-primary-50 dark:bg-primary-900/30 ml-auto animate-slide-in-right;
+  }
+  
+  .chat-message.assistant {
+    @apply bg-gray-50 dark:bg-gray-800 mr-auto animate-slide-in-left;
+  }
+  
+  /* Анимации */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-in-up {
+    animation: slideInUp 0.5s ease-out;
+  }
+  
+  .animate-slide-in-down {
+    animation: slideInDown 0.5s ease-out;
+  }
+  
+  .animate-slide-in-left {
+    animation: slideInLeft 0.5s ease-out;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.5s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-bounce-slow {
+    animation: bounce 2s infinite;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-float-slow {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+  }
+  
+  .animate-slide-up-delayed {
+    animation: slideUp 0.6s ease-out 0.2s both;
+  }
+  
+  .animate-fade-in-delayed {
+    animation: fadeIn 0.8s ease-out 0.4s both;
+  }
+  
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-500 via-primary-600 to-accent-purple bg-clip-text text-transparent;
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease-in-out infinite;
+  }
+  
+  .gradient-text-modern {
+    @apply bg-gradient-to-r from-primary-500 via-accent-purple to-accent-emerald bg-clip-text text-transparent;
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease-in-out infinite;
+  }
+  
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-effect-strong {
+    @apply bg-white/20 backdrop-blur-lg border border-white/30;
+  }
+  
+  .neon-glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+  }
+  
+  .neon-glow:hover {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.7), 0 0 60px rgba(59, 130, 246, 0.5), 0 0 90px rgba(59, 130, 246, 0.3);
+  }
+  
+  /* Neon Glow Effects - Purple-Cyan */
+  .neon-glow-purple {
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    animation: neonPulse 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+  }
+  
+  .neon-glow-purple:hover {
+    border-color: rgba(139, 92, 246, 0.6);
+    animation: neonGradientGlow 2s ease-in-out infinite;
+  }
+  
+  .neon-glow-purple:focus {
+    border-color: rgba(6, 182, 212, 0.8);
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.8),
+      0 0 25px rgba(6, 182, 212, 0.6),
+      0 0 35px rgba(139, 92, 246, 0.4),
+      inset 0 0 10px rgba(139, 92, 246, 0.1);
+    animation: neonGradientGlow 1.5s ease-in-out infinite;
+  }
+  
+  .neon-glow-cyan {
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    box-shadow: 
+      0 0 5px rgba(6, 182, 212, 0.3),
+      0 0 10px rgba(6, 182, 212, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .neon-glow-cyan:hover {
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 
+      0 0 10px rgba(6, 182, 212, 0.6),
+      0 0 20px rgba(6, 182, 212, 0.4),
+      0 0 30px rgba(6, 182, 212, 0.2);
+  }
+  
+  /* Shimmer Effects */
+  .shimmer-silver {
+    background: linear-gradient(
+      90deg,
+      #2a2a2a 0%,
+      #8E8E93 25%,
+      #C7C7CC 50%,
+      #8E8E93 75%,
+      #2a2a2a 100%
+    );
+    background-size: 200% 100%;
+    animation: silverShimmer 3s ease-in-out infinite;
+  }
+  
+  .shimmer-blue {
+    background: linear-gradient(
+      90deg,
+      #007AFF 0%,
+      #40A9FF 50%,
+      #007AFF 100%
+    );
+    background-size: 200% 100%;
+    animation: silverShimmer 3s ease-in-out infinite;
+  }
+  
+  /* Neon Border Flow Effect */
+  .neon-border-flow {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .neon-border-flow::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #8B5CF6, #06B6D4, #A78BFA, #22D3EE);
+    background-size: 300% 300%;
+    border-radius: inherit;
+    z-index: -1;
+    animation: neonBorderFlow 4s ease-in-out infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .neon-border-flow:hover::before {
+    opacity: 0.6;
+  }
+  
+  .neon-border-flow:focus::before {
+    opacity: 1;
+    animation: neonBorderFlow 2s ease-in-out infinite;
+  }
+  
+  /* Utility Classes for Neon Effects - Task 2.2 */
+  
+  /* Base Neon Glow Classes */
+  .neon-base {
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.3),
+      0 0 10px rgba(139, 92, 246, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .neon-purple-base {
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    box-shadow: 
+      0 0 8px rgba(139, 92, 246, 0.4),
+      0 0 15px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-cyan-base {
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 
+      0 0 8px rgba(6, 182, 212, 0.4),
+      0 0 15px rgba(6, 182, 212, 0.2);
+  }
+  
+  /* Animated Neon Classes */
+  .neon-pulse {
+    animation: neonPulse 3s ease-in-out infinite;
+  }
+  
+  .neon-pulse-intense {
+    animation: neonPulseIntense 2.5s ease-in-out infinite;
+  }
+  
+  .neon-breathing {
+    animation: neonBreathing 4s ease-in-out infinite;
+  }
+  
+  .neon-gradient-flow {
+    animation: neonGradientFlow 3s ease-in-out infinite;
+  }
+  
+  .neon-rotating {
+    animation: neonRotatingGlow 4s linear infinite;
+  }
+  
+  .neon-flicker {
+    animation: neonFlicker 3s ease-in-out infinite;
+  }
+  
+  /* Hover State Neon Effects */
+  .neon-hover:hover {
+    border-color: rgba(139, 92, 246, 0.7);
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.6),
+      0 0 30px rgba(139, 92, 246, 0.4),
+      0 0 45px rgba(6, 182, 212, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .neon-hover-intense:hover {
+    border-color: rgba(139, 92, 246, 0.9);
+    box-shadow: 
+      0 0 20px rgba(139, 92, 246, 0.8),
+      0 0 40px rgba(139, 92, 246, 0.6),
+      0 0 60px rgba(6, 182, 212, 0.4);
+    animation: neonGradientGlow 1.5s ease-in-out infinite;
+  }
+  
+  .neon-hover-cyan:hover {
+    border-color: rgba(6, 182, 212, 0.8);
+    box-shadow: 
+      0 0 15px rgba(6, 182, 212, 0.7),
+      0 0 30px rgba(6, 182, 212, 0.5),
+      0 0 45px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Focus State Neon Effects */
+  .neon-focus:focus {
+    outline: none;
+    border-color: rgba(6, 182, 212, 0.8);
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.8),
+      0 0 25px rgba(6, 182, 212, 0.6),
+      0 0 35px rgba(139, 92, 246, 0.4),
+      inset 0 0 10px rgba(139, 92, 246, 0.1);
+    animation: neonGradientGlow 1.5s ease-in-out infinite;
+  }
+  
+  .neon-focus-ring:focus {
+    outline: none;
+    box-shadow: 
+      0 0 0 3px rgba(139, 92, 246, 0.3),
+      0 0 0 6px rgba(6, 182, 212, 0.2),
+      0 0 20px rgba(139, 92, 246, 0.5);
+  }
+  
+  /* Active State Neon Effects */
+  .neon-active:active {
+    transform: scale(0.98);
+    box-shadow: 
+      0 0 20px rgba(139, 92, 246, 0.9),
+      0 0 40px rgba(6, 182, 212, 0.7),
+      inset 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Combined Interactive States */
+  .neon-interactive {
+    @apply neon-base transition-all duration-300;
+  }
+  
+  .neon-interactive:hover {
+    @apply neon-hover;
+  }
+  
+  .neon-interactive:focus {
+    @apply neon-focus;
+  }
+  
+  .neon-interactive:active {
+    @apply neon-active;
+  }
+  
+  /* Shimmer Silver Classes */
+  .shimmer-silver-base {
+    background: linear-gradient(
+      90deg,
+      #2a2a2a 0%,
+      #8E8E93 25%,
+      #C7C7CC 50%,
+      #8E8E93 75%,
+      #2a2a2a 100%
+    );
+    background-size: 200% 100%;
+  }
+  
+  .shimmer-silver-animated {
+    @apply shimmer-silver-base;
+    animation: silverShimmer 3s ease-in-out infinite;
+  }
+  
+  .shimmer-silver-glow {
+    @apply shimmer-silver-base;
+    animation: silverShimmerGlow 3s ease-in-out infinite;
+  }
+  
+  .shimmer-silver-hover:hover {
+    animation: silverShimmerGlow 2s ease-in-out infinite;
+  }
+  
+  /* Sparkle Effect */
+  .silver-sparkle {
+    position: relative;
+  }
+  
+  .silver-sparkle::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(229, 229, 234, 0.4) 0%, transparent 70%);
+    animation: silverSparkle 2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  
+  /* Neon Text Effects */
+  .neon-text {
+    color: var(--neon-purple);
+    text-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.5),
+      0 0 10px rgba(139, 92, 246, 0.3);
+  }
+  
+  .neon-text-animated {
+    @apply neon-text;
+    animation: neonTextGlow 3s ease-in-out infinite;
+  }
+  
+  .neon-text-cyan {
+    color: var(--neon-cyan);
+    text-shadow: 
+      0 0 5px rgba(6, 182, 212, 0.5),
+      0 0 10px rgba(6, 182, 212, 0.3);
+  }
+  
+  /* Neon Button Variants */
+  .neon-button-primary {
+    @apply bg-gray-900/80 backdrop-blur-lg;
+    border: 2px solid rgba(139, 92, 246, 0.4);
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.3),
+      0 0 20px rgba(139, 92, 246, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .neon-button-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(139, 92, 246, 0.4), 
+      rgba(6, 182, 212, 0.4), 
+      transparent
+    );
+    transition: left 0.6s ease;
+  }
+  
+  .neon-button-primary:hover {
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.5),
+      0 0 30px rgba(6, 182, 212, 0.3),
+      inset 0 0 15px rgba(139, 92, 246, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .neon-button-primary:hover::before {
+    left: 100%;
+  }
+  
+  .neon-button-primary:active {
+    transform: translateY(0);
+    box-shadow: 
+      0 0 20px rgba(139, 92, 246, 0.7),
+      0 0 40px rgba(6, 182, 212, 0.5),
+      inset 0 0 20px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-button-secondary {
+    @apply bg-gray-800/60 backdrop-blur-md;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    box-shadow: 
+      0 0 8px rgba(6, 182, 212, 0.2),
+      0 0 15px rgba(6, 182, 212, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .neon-button-secondary:hover {
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 
+      0 0 12px rgba(6, 182, 212, 0.4),
+      0 0 24px rgba(6, 182, 212, 0.2);
+  }
+  
+  /* Neon Card Variants */
+  .neon-card {
+    @apply bg-gray-900/60 backdrop-blur-lg rounded-2xl;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 10px rgba(139, 92, 246, 0.1);
+    transition: all 0.4s ease;
+  }
+  
+  .neon-card:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.3),
+      0 0 40px rgba(6, 182, 212, 0.1);
+    transform: translateY(-4px);
+  }
+  
+  .neon-card-glow {
+    @apply neon-card;
+    animation: neonBreathing 4s ease-in-out infinite;
+  }
+  
+  /* Mobile-Optimized Neon Effects */
+  @media (max-width: 768px) {
+    /* Reduce animation intensity on mobile */
+    .neon-pulse,
+    .neon-pulse-intense,
+    .neon-breathing,
+    .neon-gradient-flow {
+      animation-duration: 4s;
+    }
+    
+    /* Simplify hover effects for touch devices */
+    .neon-hover:hover,
+    .neon-hover-intense:hover,
+    .neon-hover-cyan:hover {
+      transform: none;
+    }
+    
+    /* Reduce glow intensity on mobile for performance */
+    .neon-button-primary:hover {
+      box-shadow: 
+        0 0 10px rgba(139, 92, 246, 0.4),
+        0 0 20px rgba(6, 182, 212, 0.2);
+    }
+    
+    .neon-card:hover {
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(139, 92, 246, 0.2);
+    }
+    
+    /* Disable complex animations on low-end devices */
+    @media (prefers-reduced-motion: reduce) {
+      .neon-pulse,
+      .neon-pulse-intense,
+      .neon-breathing,
+      .neon-gradient-flow,
+      .neon-rotating,
+      .neon-flicker,
+      .shimmer-silver-animated,
+      .shimmer-silver-glow,
+      .neon-text-animated {
+        animation: none;
+      }
+      
+      .neon-hover:hover,
+      .neon-hover-intense:hover {
+        animation: none;
+      }
+    }
+  }
+  
+  /* Touch-friendly adjustments */
+  @media (hover: none) and (pointer: coarse) {
+    /* Replace hover effects with active states for touch */
+    .neon-hover:active {
+      border-color: rgba(139, 92, 246, 0.7);
+      box-shadow: 
+        0 0 15px rgba(139, 92, 246, 0.6),
+        0 0 30px rgba(139, 92, 246, 0.4);
+    }
+    
+    .neon-button-primary:active::before {
+      left: 100%;
+    }
+    
+    /* Increase touch target sizes */
+    .neon-button-primary,
+    .neon-button-secondary {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 12px 24px;
+    }
+  }
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .neon-base,
+    .neon-purple-base,
+    .neon-cyan-base {
+      border-width: 2px;
+    }
+    
+    .neon-text,
+    .neon-text-cyan {
+      text-shadow: none;
+      font-weight: 600;
+    }
+  }
+  
+  /* ============================================
+     CROSS-BROWSER FALLBACKS - Task 12.2
+     ============================================ */
+  
+  /* Fallback for backdrop-filter (Safari < 9, Firefox < 103, IE/Edge Legacy) */
+  @supports not (backdrop-filter: blur(10px)) {
+    .glass-effect,
+    .btn-glass,
+    .card-glass {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .glass-effect-strong {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-glass-primary {
+      background: rgba(59, 130, 246, 0.25);
+    }
+    
+    .btn-glass-secondary {
+      background: rgba(107, 114, 128, 0.25);
+    }
+    
+    .btn-glass-success {
+      background: rgba(34, 197, 94, 0.25);
+    }
+    
+    .btn-glass-danger {
+      background: rgba(239, 68, 68, 0.25);
+    }
+    
+    .btn-glass-ghost {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .neon-button-primary,
+    .neon-button-secondary {
+      background: rgba(26, 26, 26, 0.95);
+    }
+    
+    .neon-card {
+      background: rgba(26, 26, 26, 0.85);
+    }
+    
+    /* Dark theme adjustments */
+    @media (prefers-color-scheme: dark) {
+      .glass-effect,
+      .btn-glass,
+      .card-glass {
+        background: rgba(26, 26, 26, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      
+      .glass-effect-strong {
+        background: rgba(26, 26, 26, 0.9);
+      }
+    }
+  }
+  
+  /* Fallback for CSS animations (IE, older browsers) */
+  @supports not (animation: fadeIn 1s) {
+    .animate-fade-in,
+    .animate-slide-in-up,
+    .animate-slide-in-down,
+    .animate-slide-in-left,
+    .animate-slide-in-right,
+    .animate-scale-in {
+      opacity: 1;
+      transform: none;
+    }
+    
+    .neon-pulse,
+    .neon-pulse-intense,
+    .neon-breathing,
+    .neon-gradient-flow,
+    .neon-rotating,
+    .neon-flicker,
+    .shimmer-silver-animated,
+    .shimmer-silver-glow,
+    .neon-text-animated {
+      /* Static glow effect as fallback */
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+    }
+    
+    .gradient-text,
+    .gradient-text-modern {
+      background: linear-gradient(to right, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+  
+  /* Fallback for CSS Grid (IE 10-11) */
+  @supports not (display: grid) {
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    
+    .grid > * {
+      flex: 1 1 auto;
+      min-width: 250px;
+    }
+  }
+  
+  /* Fallback for CSS clamp() (Safari < 13.1, Firefox < 75) */
+  @supports not (font-size: clamp(1rem, 2vw, 2rem)) {
+    :root {
+      --text-hero: 4rem;
+      --text-title: 2.5rem;
+      --text-subtitle: 1.5rem;
+      --text-body: 1.125rem;
+    }
+    
+    @media (min-width: 768px) {
+      :root {
+        --text-hero: 5rem;
+        --text-title: 3rem;
+        --text-subtitle: 1.75rem;
+        --text-body: 1.25rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      :root {
+        --text-hero: 6rem;
+        --text-title: 3.5rem;
+        --text-subtitle: 2rem;
+        --text-body: 1.25rem;
+      }
+    }
+  }
+  
+  /* Fallback for CSS custom properties (IE 11) */
+  @supports not (--custom: property) {
+    body {
+      background-color: #0a0a0a;
+      color: #E5E5EA;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(to right, #3b82f6, #2563eb);
+      color: white;
+    }
+    
+    .neon-glow-purple {
+      border: 1px solid #8b5cf6;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    }
+    
+    .neon-glow-cyan {
+      border: 1px solid #06b6d4;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+  }
+  
+  /* Fallback for background-clip: text (IE, Edge Legacy) */
+  @supports not (background-clip: text) or not (-webkit-background-clip: text) {
+    .gradient-text,
+    .gradient-text-modern,
+    .neon-text,
+    .neon-text-animated,
+    .neon-text-cyan {
+      background: none;
+      color: #3b82f6;
+      -webkit-background-clip: unset;
+      background-clip: unset;
+    }
+    
+    .neon-text,
+    .neon-text-animated {
+      color: #8b5cf6;
+    }
+    
+    .neon-text-cyan {
+      color: #06b6d4;
+    }
+  }
+  
+  /* Fallback for CSS filters (IE, older browsers) */
+  @supports not (filter: blur(10px)) {
+    .partner-logo {
+      opacity: 0.7;
+    }
+    
+    .partner-logo:hover {
+      opacity: 1;
+    }
+  }
+  
+  /* Fallback for CSS transforms (IE 9) */
+  @supports not (transform: translateY(-10px)) {
+    .animate-float,
+    .animate-float-slow {
+      position: relative;
+    }
+    
+    .card:hover,
+    .neon-card:hover,
+    .neon-hover:hover {
+      margin-top: -2px;
+    }
+  }
+  
+  /* Fallback for box-shadow (very old browsers) */
+  @supports not (box-shadow: 0 0 10px rgba(0,0,0,0.5)) {
+    .neon-glow-purple,
+    .neon-glow-cyan,
+    .neon-base,
+    .neon-purple-base,
+    .neon-cyan-base {
+      border: 2px solid #8b5cf6;
+    }
+    
+    .card,
+    .card-glass,
+    .neon-card {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  /* Fallback for CSS transitions (IE 9) */
+  @supports not (transition: all 0.3s ease) {
+    /* Remove transition-dependent hover effects */
+    .btn-primary:hover,
+    .btn-secondary:hover,
+    .neon-button-primary:hover,
+    .neon-button-secondary:hover {
+      /* Instant state change instead of transition */
+      opacity: 0.9;
+    }
+  }
+  
+  /* Fallback for position: sticky (IE, older browsers) */
+  @supports not (position: sticky) {
+    .sticky {
+      position: relative;
+    }
+  }
+  
+  /* Fallback for CSS aspect-ratio (Safari < 15, Firefox < 89) */
+  @supports not (aspect-ratio: 16 / 9) {
+    .aspect-video {
+      position: relative;
+      padding-bottom: 56.25%; /* 16:9 aspect ratio */
+      height: 0;
+    }
+    
+    .aspect-video > * {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .aspect-square {
+      position: relative;
+      padding-bottom: 100%; /* 1:1 aspect ratio */
+      height: 0;
+    }
+    
+    .aspect-square > * {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+  }
+  
+  /* Fallback for CSS gap (IE, older browsers) */
+  @supports not (gap: 1rem) {
+    .flex.gap-4 > * + *,
+    .grid.gap-4 > * {
+      margin-left: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .flex.gap-6 > * + *,
+    .grid.gap-6 > * {
+      margin-left: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .flex.gap-8 > * + *,
+    .grid.gap-8 > * {
+      margin-left: 2rem;
+      margin-top: 2rem;
+    }
+  }
+  
+  /* Fallback for object-fit (IE, older browsers) */
+  @supports not (object-fit: cover) {
+    img {
+      width: 100%;
+      height: auto;
+    }
+  }
+  
+  /* Fallback for CSS scroll-behavior (IE, Safari < 15.4) */
+  @supports not (scroll-behavior: smooth) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  
+  /* Browser-specific fixes */
+  
+  /* Firefox-specific fixes */
+  @-moz-document url-prefix() {
+    /* Fix for Firefox backdrop-filter performance */
+    .glass-effect,
+    .btn-glass,
+    .card-glass {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .glass-effect,
+      .btn-glass,
+      .card-glass {
+        background: rgba(26, 26, 26, 0.8);
+      }
+    }
+  }
+  
+  /* Safari-specific fixes */
+  @supports (-webkit-backdrop-filter: blur(10px)) {
+    .glass-effect,
+    .btn-glass,
+    .card-glass {
+      -webkit-backdrop-filter: blur(20px);
+    }
+    
+    .glass-effect-strong {
+      -webkit-backdrop-filter: blur(30px);
+    }
+  }
+  
+  /* Edge Legacy-specific fixes */
+  @supports (-ms-ime-align: auto) {
+    .neon-glow-purple,
+    .neon-glow-cyan {
+      border: 2px solid #8b5cf6;
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
+    }
+    
+    .gradient-text,
+    .gradient-text-modern {
+      color: #3b82f6;
+      background: none;
+    }
+  }
+  
+  /* Chrome/Chromium-specific optimizations */
+  @supports (-webkit-appearance: none) {
+    .neon-button-primary,
+    .neon-card {
+      will-change: transform, box-shadow;
+    }
+    
+    .animate-float,
+    .animate-float-slow {
+      will-change: transform;
+    }
+  }
+  
+  /* Performance optimizations for older browsers */
+  @media (max-width: 768px) {
+    @supports not (backdrop-filter: blur(10px)) {
+      /* Disable complex effects on mobile without backdrop-filter support */
+      .glass-effect,
+      .btn-glass,
+      .card-glass,
+      .neon-card {
+        background: rgba(26, 26, 26, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(14, 165, 233, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.6), 0 0 30px rgba(14, 165, 233, 0.4);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glassShimmer {
+  0% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.2), 0 0 10px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.2), 0 0 10px rgba(59, 130, 246, 0.1);
+  }
+}
+
+@keyframes glassGlow {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+
+/* Neon Glow Animations */
+@keyframes neonPulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.3),
+      0 0 10px rgba(139, 92, 246, 0.2),
+      0 0 15px rgba(139, 92, 246, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.6),
+      0 0 20px rgba(139, 92, 246, 0.4),
+      0 0 30px rgba(139, 92, 246, 0.2),
+      0 0 40px rgba(6, 182, 212, 0.1);
+  }
+}
+
+@keyframes neonGradientGlow {
+  0% { 
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.4),
+      0 0 10px rgba(139, 92, 246, 0.3);
+  }
+  25% {
+    box-shadow: 
+      0 0 8px rgba(167, 139, 250, 0.5),
+      0 0 15px rgba(167, 139, 250, 0.3),
+      0 0 25px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 10px rgba(6, 182, 212, 0.6),
+      0 0 20px rgba(6, 182, 212, 0.4),
+      0 0 30px rgba(6, 182, 212, 0.2);
+  }
+  75% {
+    box-shadow: 
+      0 0 8px rgba(34, 211, 238, 0.5),
+      0 0 15px rgba(34, 211, 238, 0.3),
+      0 0 25px rgba(6, 182, 212, 0.2);
+  }
+  100% { 
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.4),
+      0 0 10px rgba(139, 92, 246, 0.3);
+  }
+}
+
+@keyframes neonBorderFlow {
+  0%, 100% { 
+    background-position: 0% 50%; 
+  }
+  50% { 
+    background-position: 100% 50%; 
+  }
+}
+
+@keyframes silverShimmer {
+  0% { 
+    background-position: -200% center;
+    box-shadow: 0 0 0 rgba(199, 199, 204, 0);
+  }
+  50% {
+    background-position: 200% center;
+    box-shadow: 0 0 20px rgba(199, 199, 204, 0.3);
+  }
+  100% { 
+    background-position: -200% center;
+    box-shadow: 0 0 0 rgba(199, 199, 204, 0);
+  }
+}
+
+@keyframes shimmerSweep {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Additional Neon Glow Animations for Task 2.1 */
+
+/* Pulsating neon effect with intensity variation */
+@keyframes neonPulseIntense {
+  0%, 100% { 
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.3),
+      0 0 30px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 20px rgba(139, 92, 246, 0.8),
+      0 0 40px rgba(139, 92, 246, 0.6),
+      0 0 60px rgba(139, 92, 246, 0.4),
+      0 0 80px rgba(6, 182, 212, 0.2);
+  }
+}
+
+/* Gradient glow transition between purple and cyan */
+@keyframes neonGradientFlow {
+  0% { 
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.6),
+      0 0 20px rgba(139, 92, 246, 0.4),
+      0 0 30px rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+  33% {
+    box-shadow: 
+      0 0 12px rgba(167, 139, 250, 0.7),
+      0 0 24px rgba(167, 139, 250, 0.5),
+      0 0 36px rgba(167, 139, 250, 0.3);
+    border-color: rgba(167, 139, 250, 0.6);
+  }
+  66% {
+    box-shadow: 
+      0 0 12px rgba(6, 182, 212, 0.7),
+      0 0 24px rgba(6, 182, 212, 0.5),
+      0 0 36px rgba(6, 182, 212, 0.3);
+    border-color: rgba(6, 182, 212, 0.6);
+  }
+  100% { 
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.6),
+      0 0 20px rgba(139, 92, 246, 0.4),
+      0 0 30px rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+}
+
+/* Shimmering silver elements animation */
+@keyframes silverShimmerGlow {
+  0% { 
+    background-position: -200% center;
+    box-shadow: 0 0 5px rgba(199, 199, 204, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    background-position: 200% center;
+    box-shadow: 
+      0 0 15px rgba(199, 199, 204, 0.4),
+      0 0 25px rgba(229, 229, 234, 0.3);
+    filter: brightness(1.2);
+  }
+  100% { 
+    background-position: -200% center;
+    box-shadow: 0 0 5px rgba(199, 199, 204, 0.2);
+    filter: brightness(1);
+  }
+}
+
+/* Rotating gradient glow for borders */
+@keyframes neonRotatingGlow {
+  0% {
+    filter: hue-rotate(0deg) brightness(1);
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  25% {
+    filter: hue-rotate(30deg) brightness(1.1);
+    box-shadow: 
+      0 0 12px rgba(167, 139, 250, 0.6),
+      0 0 24px rgba(167, 139, 250, 0.4);
+  }
+  50% {
+    filter: hue-rotate(60deg) brightness(1.2);
+    box-shadow: 
+      0 0 15px rgba(6, 182, 212, 0.7),
+      0 0 30px rgba(6, 182, 212, 0.5);
+  }
+  75% {
+    filter: hue-rotate(30deg) brightness(1.1);
+    box-shadow: 
+      0 0 12px rgba(34, 211, 238, 0.6),
+      0 0 24px rgba(34, 211, 238, 0.4);
+  }
+  100% {
+    filter: hue-rotate(0deg) brightness(1);
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.3);
+  }
+}
+
+/* Breathing neon effect - subtle pulsation */
+@keyframes neonBreathing {
+  0%, 100% { 
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.4),
+      0 0 10px rgba(139, 92, 246, 0.2);
+    opacity: 0.9;
+  }
+  50% {
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.6),
+      0 0 30px rgba(139, 92, 246, 0.4),
+      0 0 45px rgba(6, 182, 212, 0.2);
+    opacity: 1;
+  }
+}
+
+/* Flickering neon effect for dramatic moments */
+@keyframes neonFlicker {
+  0%, 100% { 
+    opacity: 1;
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.6),
+      0 0 20px rgba(139, 92, 246, 0.4);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    opacity: 0.8;
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.3),
+      0 0 10px rgba(139, 92, 246, 0.2);
+  }
+  20%, 40%, 60%, 80% {
+    opacity: 1;
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.7),
+      0 0 30px rgba(139, 92, 246, 0.5);
+  }
+}
+
+/* Shimmer sweep with gradient */
+@keyframes shimmerSweepGradient {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Silver sparkle effect */
+@keyframes silverSparkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Neon text glow animation */
+@keyframes neonTextGlow {
+  0%, 100% {
+    text-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.5),
+      0 0 10px rgba(139, 92, 246, 0.3),
+      0 0 15px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    text-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.8),
+      0 0 20px rgba(139, 92, 246, 0.6),
+      0 0 30px rgba(139, 92, 246, 0.4),
+      0 0 40px rgba(6, 182, 212, 0.3);
+  }
+}
+
+/* Neon Glass Card Variants - Task 7.1 */
+
+/* Neon Glass variant with purple-cyan glow */
+.neon-glass-card {
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 10px rgba(139, 92, 246, 0.1);
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.neon-glass-card:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(139, 92, 246, 0.3),
+    0 0 40px rgba(6, 182, 212, 0.15),
+    0 20px 60px rgba(139, 92, 246, 0.2);
+  transform: translateY(-8px);
+}
+
+/* Neon Purple variant with pulsating animation */
+.neon-purple-card {
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(139, 92, 246, 0.2);
+  animation: neonPulse 3s ease-in-out infinite;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.neon-purple-card:hover {
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.6),
+    0 0 25px rgba(139, 92, 246, 0.5),
+    0 0 50px rgba(6, 182, 212, 0.3),
+    0 24px 80px rgba(139, 92, 246, 0.3);
+  animation: neonGradientGlow 2s ease-in-out infinite;
+  transform: translateY(-8px) scale(1.02);
+}
+
+/* Floating shadow effect for neon cards */
+.neon-card-float {
+  position: relative;
+}
+
+.neon-card-float::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 10%;
+  right: 10%;
+  height: 20px;
+  background: radial-gradient(ellipse, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+  filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.neon-card-float:hover::after {
+  opacity: 1;
+  transform: translateY(5px);
+}
+
+/* Responsive adjustments for neon cards */
+@media (max-width: 768px) {
+  .neon-glass-card:hover,
+  .neon-purple-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 15px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-purple-card {
+    animation-duration: 4s;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .neon-glass-card,
+  .neon-purple-card {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .neon-purple-card {
+    animation: none;
+  }
+  
+  .neon-glass-card:hover,
+  .neon-purple-card:hover {
+    transform: none;
+  }
+}
+
+/* Enhanced Neon Glow Effects for Cards - Task 7.2 */
+
+/* Intense neon glow on hover */
+.hover\:neon-glow-intense:hover {
+  box-shadow: 
+    0 0 20px rgba(139, 92, 246, 0.6),
+    0 0 40px rgba(6, 182, 212, 0.4),
+    0 0 60px rgba(139, 92, 246, 0.3),
+    0 20px 80px rgba(139, 92, 246, 0.25),
+    inset 0 0 20px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.8);
+}
+
+/* Neon icon glow effect */
+.neon-icon-glow {
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));
+  transition: filter 0.3s ease;
+}
+
+.group:hover .neon-icon-glow {
+  filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.6))
+         drop-shadow(0 0 20px rgba(139, 92, 246, 0.4));
+}
+
+/* Neon dot glow for list bullets */
+.neon-dot-glow {
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.5);
+  transition: box-shadow 0.3s ease;
+}
+
+.group:hover .neon-dot-glow {
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.8),
+              0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+/* Utility classes for neon effects */
+.neon-border-flow {
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-border-flow::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #8B5CF6, #06B6D4, #A78BFA, #22D3EE);
+  background-size: 300% 300%;
+  border-radius: inherit;
+  z-index: -1;
+  animation: neonBorderFlow 4s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.neon-border-flow:hover::before {
+  opacity: 0.6;
+}
+
+.neon-glow-purple {
+  box-shadow: 
+    0 0 10px rgba(139, 92, 246, 0.3),
+    0 0 20px rgba(139, 92, 246, 0.2);
+  animation: neonPulse 3s ease-in-out infinite;
+}
+
+.neon-pulse {
+  animation: neonPulse 3s ease-in-out infinite;
+}
+
+/* Responsive optimizations for mobile devices */
+@media (max-width: 640px) {
+  .hover\:neon-glow-intense:hover {
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.5),
+      0 0 30px rgba(6, 182, 212, 0.3),
+      0 15px 50px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-icon-glow {
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.3));
+  }
+  
+  .group:hover .neon-icon-glow {
+    filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))
+           drop-shadow(0 0 15px rgba(139, 92, 246, 0.3));
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .hover\:neon-glow-intense:hover {
+    box-shadow: 
+      0 0 18px rgba(139, 92, 246, 0.55),
+      0 0 35px rgba(6, 182, 212, 0.35),
+      0 0 50px rgba(139, 92, 246, 0.25),
+      0 18px 70px rgba(139, 92, 246, 0.22);
+  }
+}
+
+/* Performance optimization - reduce animations on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  .neon-border-flow::before,
+  .neon-glow-purple,
+  .neon-pulse {
+    animation: none;
+  }
+  
+  .hover\:neon-glow-intense:hover {
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.4),
+      0 0 30px rgba(6, 182, 212, 0.3);
+  }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  .hover\:neon-glow-intense:hover {
+    border-width: 2px;
+    box-shadow: 
+      0 0 25px rgba(139, 92, 246, 0.8),
+      0 0 50px rgba(6, 182, 212, 0.6);
+  }
+  
+  .neon-icon-glow {
+    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.6));
+  }
+}
+
+/* ============================================
+   MOBILE OPTIMIZATION FOR NEON EFFECTS
+   Task 10.1 - Optimize neon effects for mobile
+   ============================================ */
+
+/* Base mobile optimizations - reduce animation intensity */
+@media (max-width: 768px) {
+  /* Reduce neon glow intensity on mobile for better performance */
+  .neon-glow-purple {
+    box-shadow: 
+      0 0 5px rgba(139, 92, 246, 0.2),
+      0 0 10px rgba(139, 92, 246, 0.15);
+    animation: neonPulseMobile 4s ease-in-out infinite;
+  }
+  
+  .neon-glow-cyan {
+    box-shadow: 
+      0 0 5px rgba(6, 182, 212, 0.2),
+      0 0 10px rgba(6, 182, 212, 0.15);
+  }
+  
+  /* Simplified neon pulse animation for mobile */
+  @keyframes neonPulseMobile {
+    0%, 100% { 
+      box-shadow: 
+        0 0 5px rgba(139, 92, 246, 0.2),
+        0 0 10px rgba(139, 92, 246, 0.15);
+    }
+    50% {
+      box-shadow: 
+        0 0 8px rgba(139, 92, 246, 0.4),
+        0 0 15px rgba(139, 92, 246, 0.25),
+        0 0 20px rgba(6, 182, 212, 0.1);
+    }
+  }
+  
+  /* Reduce shimmer effect intensity */
+  .shimmer-silver-animated,
+  .shimmer-silver-glow {
+    animation-duration: 4s;
+  }
+  
+  @keyframes silverShimmerMobile {
+    0% { 
+      background-position: -200% center;
+      box-shadow: 0 0 3px rgba(199, 199, 204, 0.15);
+    }
+    50% {
+      background-position: 200% center;
+      box-shadow: 0 0 10px rgba(199, 199, 204, 0.25);
+    }
+    100% { 
+      background-position: -200% center;
+      box-shadow: 0 0 3px rgba(199, 199, 204, 0.15);
+    }
+  }
+  
+  /* Optimize neon buttons for mobile */
+  .neon-button-primary {
+    box-shadow: 
+      0 0 8px rgba(139, 92, 246, 0.25),
+      0 0 15px rgba(139, 92, 246, 0.1);
+  }
+  
+  .neon-button-primary:hover,
+  .neon-button-primary:active {
+    box-shadow: 
+      0 0 12px rgba(139, 92, 246, 0.4),
+      0 0 20px rgba(6, 182, 212, 0.2),
+      inset 0 0 10px rgba(139, 92, 246, 0.08);
+    transform: none; /* Remove transform on mobile for better performance */
+  }
+  
+  /* Optimize neon cards for mobile */
+  .neon-card {
+    box-shadow: 
+      0 4px 20px rgba(0, 0, 0, 0.3),
+      0 0 8px rgba(139, 92, 246, 0.08);
+  }
+  
+  .neon-card:hover,
+  .neon-card:active {
+    box-shadow: 
+      0 6px 25px rgba(0, 0, 0, 0.35),
+      0 0 15px rgba(139, 92, 246, 0.2),
+      0 0 25px rgba(6, 182, 212, 0.08);
+    transform: translateY(-2px); /* Reduced transform */
+  }
+  
+  /* Reduce border flow animation complexity */
+  .neon-border-flow::before {
+    animation-duration: 5s;
+    opacity: 0.4;
+  }
+  
+  .neon-border-flow:hover::before,
+  .neon-border-flow:focus::before {
+    opacity: 0.5;
+  }
+  
+  /* Optimize gradient glow animations */
+  .neon-pulse,
+  .neon-pulse-intense,
+  .neon-breathing,
+  .neon-gradient-flow {
+    animation-duration: 4s;
+  }
+  
+  /* Simplify text glow effects */
+  .neon-text {
+    text-shadow: 
+      0 0 3px rgba(139, 92, 246, 0.4),
+      0 0 6px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-text-cyan {
+    text-shadow: 
+      0 0 3px rgba(6, 182, 212, 0.4),
+      0 0 6px rgba(6, 182, 212, 0.2);
+  }
+  
+  /* Optimize focus states for mobile */
+  .neon-focus:focus {
+    box-shadow: 
+      0 0 10px rgba(139, 92, 246, 0.6),
+      0 0 18px rgba(6, 182, 212, 0.4),
+      0 0 25px rgba(139, 92, 246, 0.3);
+    animation-duration: 2s;
+  }
+}
+
+/* Performance optimization - disable animations on reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all neon animations */
+  .neon-pulse,
+  .neon-pulse-intense,
+  .neon-breathing,
+  .neon-gradient-flow,
+  .neon-rotating,
+  .neon-flicker,
+  .neon-glow-purple,
+  .neon-card-glow,
+  .shimmer-silver-animated,
+  .shimmer-silver-glow,
+  .neon-text-animated {
+    animation: none !important;
+  }
+  
+  /* Disable pseudo-element animations */
+  .neon-border-flow::before,
+  .neon-button-primary::before,
+  .silver-sparkle::after {
+    animation: none !important;
+  }
+  
+  /* Keep static glow effects but remove animation */
+  .neon-glow-purple {
+    box-shadow: 
+      0 0 8px rgba(139, 92, 246, 0.3),
+      0 0 15px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-card {
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 10px rgba(139, 92, 246, 0.15);
+  }
+  
+  /* Remove hover animations */
+  .neon-hover:hover,
+  .neon-hover-intense:hover {
+    animation: none !important;
+  }
+  
+  /* Simplify transitions */
+  * {
+    transition-duration: 0.1s !important;
+  }
+}
+
+/* Optimize for low-end mobile devices using will-change and transform */
+@media (max-width: 768px) {
+  /* Use will-change for elements that will animate */
+  .neon-button-primary,
+  .neon-card,
+  .neon-border-flow::before {
+    will-change: transform, box-shadow;
+  }
+  
+  /* Use transform instead of other properties for better performance */
+  .neon-card:hover,
+  .neon-card:active {
+    transform: translateY(-2px) translateZ(0); /* Force GPU acceleration */
+  }
+  
+  .neon-button-primary:active {
+    transform: scale(0.98) translateZ(0); /* Force GPU acceleration */
+  }
+  
+  /* Remove will-change after animation completes */
+  .neon-button-primary:not(:hover):not(:active),
+  .neon-card:not(:hover):not(:active) {
+    will-change: auto;
+  }
+}
+
+/* Optimize for very small screens (phones in portrait) */
+@media (max-width: 480px) {
+  /* Further reduce glow effects */
+  .neon-glow-purple,
+  .neon-glow-cyan {
+    box-shadow: 
+      0 0 3px rgba(139, 92, 246, 0.15),
+      0 0 6px rgba(139, 92, 246, 0.1);
+    animation: none; /* Disable animation on very small screens */
+  }
+  
+  /* Simplify button effects */
+  .neon-button-primary {
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-button-primary:active {
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Minimal card effects */
+  .neon-card {
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.25);
+  }
+  
+  .neon-card:active {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Disable complex animations */
+  .neon-border-flow::before,
+  .shimmer-silver-animated,
+  .shimmer-silver-glow {
+    animation: none;
+  }
+}
+
+/* Optimize for devices with limited GPU capabilities */
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+  /* Use simpler animations that are GPU-friendly */
+  .neon-pulse {
+    animation: neonPulseSimple 4s ease-in-out infinite;
+  }
+  
+  @keyframes neonPulseSimple {
+    0%, 100% { 
+      opacity: 0.8;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.01);
+    }
+  }
+  
+  /* Optimize backdrop-filter for mobile */
+  .neon-button-primary,
+  .neon-card {
+    backdrop-filter: blur(10px); /* Reduced from 20px */
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* Battery saving mode detection (experimental) */
+@media (prefers-reduced-motion: reduce), (prefers-color-scheme: dark) and (max-width: 768px) {
+  /* Assume battery saving mode, minimize effects */
+  .neon-glow-purple,
+  .neon-glow-cyan,
+  .neon-button-primary,
+  .neon-card {
+    box-shadow: none;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+  
+  .neon-text,
+  .neon-text-cyan {
+    text-shadow: none;
+  }
+  
+  /* Disable all animations */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Optimize for landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce vertical spacing and effects */
+  .neon-card {
+    padding: 16px;
+  }
+  
+  .neon-glow-purple {
+    box-shadow: 
+      0 0 4px rgba(139, 92, 246, 0.2),
+      0 0 8px rgba(139, 92, 246, 0.15);
+  }
+}
+
+/* High performance mode for modern mobile devices */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Tablets can handle more effects */
+  .neon-glow-purple {
+    box-shadow: 
+      0 0 8px rgba(139, 92, 246, 0.35),
+      0 0 15px rgba(139, 92, 246, 0.25),
+      0 0 20px rgba(139, 92, 246, 0.15);
+  }
+  
+  .neon-card:hover {
+    box-shadow: 
+      0 10px 35px rgba(0, 0, 0, 0.45),
+      0 0 18px rgba(139, 92, 246, 0.25),
+      0 0 35px rgba(6, 182, 212, 0.12);
+  }
+}
+
+/* Fallback for browsers that don't support backdrop-filter */
+@supports not (backdrop-filter: blur(10px)) {
+  .neon-button-primary,
+  .neon-card,
+  .neon-border-flow {
+    background: rgba(26, 26, 26, 0.95);
+  }
+}
+
+/* Optimize for touch devices - remove hover effects */
+@media (hover: none) and (pointer: coarse) {
+  /* Replace hover with active states */
+  .neon-hover:hover {
+    border-color: inherit;
+    box-shadow: inherit;
+    transform: none;
+  }
+  
+  .neon-hover:active {
+    border-color: rgba(139, 92, 246, 0.6);
+    box-shadow: 
+      0 0 12px rgba(139, 92, 246, 0.5),
+      0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  
+  .neon-button-primary:hover::before {
+    left: -100%; /* Reset hover effect */
+  }
+  
+  .neon-button-primary:active::before {
+    left: 100%; /* Trigger on active */
+  }
+  
+  .neon-card:hover {
+    transform: none;
+    box-shadow: inherit;
+  }
+  
+  .neon-card:active {
+    transform: scale(0.98);
+    box-shadow: 
+      0 6px 25px rgba(0, 0, 0, 0.35),
+      0 0 12px rgba(139, 92, 246, 0.25);
+  }
+}
+
+/* ============================================
+   TOUCH-FRIENDLY INTERFACE OPTIMIZATIONS
+   Task 10.2 - Adapt components for touch interface
+   ============================================ */
+
+/* Touch manipulation for better touch response */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure minimum touch target sizes (44x44px) */
+@media (max-width: 768px) {
+  /* Buttons minimum size */
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-glass,
+  .neon-button-primary,
+  .neon-button-secondary {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 24px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Input fields minimum height */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    min-height: 48px;
+    font-size: 16px; /* Prevent zoom on iOS */
+    touch-action: manipulation;
+  }
+  
+  /* Links and interactive elements */
+  a,
+  .clickable,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* FAQ buttons */
+  .faq-button,
+  [aria-expanded] {
+    min-height: 60px;
+    padding: 16px 24px;
+  }
+  
+  /* Navigation dots and small controls */
+  .nav-dot,
+  .carousel-control,
+  .pagination-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px;
+  }
+  
+  /* Icon buttons */
+  .icon-button {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 12px;
+  }
+}
+
+/* Replace hover effects with active states for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects */
+  .hover\:bg-white\/5:hover,
+  .hover\:bg-gray-50:hover,
+  .hover\:bg-gray-100:hover {
+    background-color: inherit;
+  }
+  
+  /* Add active states instead */
+  .hover\:bg-white\/5:active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .hover\:bg-gray-50:active {
+    background-color: rgb(249, 250, 251);
+  }
+  
+  .hover\:bg-gray-100:active {
+    background-color: rgb(243, 244, 246);
+  }
+  
+  /* Button active states */
+  .btn-primary:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+  
+  .btn-secondary:active {
+    transform: scale(0.97);
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .btn-glass:active {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
+  
+  /* Card active states */
+  .card:active,
+  .card-glass:active {
+    transform: scale(0.98);
+  }
+  
+  /* Neon effects for touch */
+  .neon-hover:active {
+    border-color: rgba(139, 92, 246, 0.7);
+    box-shadow: 
+      0 0 15px rgba(139, 92, 246, 0.6),
+      0 0 30px rgba(139, 92, 246, 0.4);
+  }
+  
+  .neon-card:active {
+    transform: scale(0.98);
+    box-shadow: 
+      0 6px 25px rgba(0, 0, 0, 0.35),
+      0 0 15px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Улучшенные неоновые кнопки для мобильной версии */
+  .neon-button-primary:active {
+    transform: scale(0.95) translateZ(0);
+    box-shadow: 
+      0 0 20px rgba(139, 92, 246, 0.8),
+      0 0 40px rgba(6, 182, 212, 0.6),
+      inset 0 0 20px rgba(139, 92, 246, 0.2);
+  }
+  
+  .neon-interactive:active {
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 
+      0 0 12px rgba(139, 92, 246, 0.7),
+      0 0 24px rgba(139, 92, 246, 0.5),
+      0 0 36px rgba(6, 182, 212, 0.3);
+    transform: scale(0.96);
+  }
+  
+  /* Кнопки чата на мобильных с неоном */
+  @media (max-width: 768px) {
+    .neon-button-primary {
+      min-height: 48px;
+      min-width: 48px;
+      padding: 14px;
+      font-size: 16px;
+      box-shadow: 
+        0 0 10px rgba(139, 92, 246, 0.4),
+        0 0 20px rgba(139, 92, 246, 0.2),
+        0 0 30px rgba(6, 182, 212, 0.1);
+    }
+    
+    .neon-interactive {
+      min-height: 48px;
+      min-width: 48px;
+      padding: 14px;
+    }
+    
+    /* Усиленное свечение при нажатии */
+    .neon-button-primary:active,
+    .neon-interactive:active {
+      animation: neonPulseMobile 0.3s ease-out;
+    }
+    
+    @keyframes neonPulseMobile {
+      0% {
+        box-shadow: 
+          0 0 10px rgba(139, 92, 246, 0.4),
+          0 0 20px rgba(139, 92, 246, 0.2);
+      }
+      50% {
+        box-shadow: 
+          0 0 20px rgba(139, 92, 246, 0.8),
+          0 0 40px rgba(6, 182, 212, 0.6),
+          0 0 60px rgba(139, 92, 246, 0.4);
+      }
+      100% {
+        box-shadow: 
+          0 0 10px rgba(139, 92, 246, 0.4),
+          0 0 20px rgba(139, 92, 246, 0.2);
+      }
+    }
+  }
+  
+  /* Remove transform on hover, only on active */
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+  
+  .hover\:scale-105:active {
+    transform: scale(0.98);
+  }
+  
+  /* Partner logos touch behavior */
+  .partner-logo:active {
+    filter: grayscale(0%) brightness(1);
+    transform: scale(1.05);
+  }
+}
+
+/* Adaptive layout for screen rotation */
+@media (max-width: 768px) and (orientation: portrait) {
+  /* Portrait mode optimizations */
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  /* Stack elements vertically */
+  .flex-row-mobile {
+    flex-direction: column;
+  }
+  
+  /* Full width on portrait */
+  .w-auto-mobile {
+    width: 100%;
+  }
+  
+  /* Reduce font sizes slightly */
+  .text-hero-mobile {
+    font-size: clamp(2rem, 6vw, 3.5rem);
+  }
+  
+  .text-title-mobile {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+  }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Landscape mode optimizations */
+  .container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  
+  /* Use horizontal space better */
+  .flex-col-landscape {
+    flex-direction: row;
+  }
+  
+  /* Reduce vertical padding */
+  .py-16-landscape {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  
+  /* Compact spacing */
+  .space-y-8-landscape > * + * {
+    margin-top: 1rem;
+  }
+  
+  /* Smaller hero sections */
+  .hero-landscape {
+    min-height: 60vh;
+  }
+}
+
+/* Tablet optimizations (portrait and landscape) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Tablet-specific touch targets */
+  button,
+  .btn-primary,
+  .btn-secondary {
+    min-height: 48px;
+    padding: 14px 28px;
+  }
+  
+  /* Comfortable spacing for tablets */
+  .grid-cols-2-tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .grid-cols-3-tablet {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* Optimize card layouts */
+  .card-grid-tablet {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+}
+
+/* Improve scrolling on mobile */
+@media (max-width: 768px) {
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Optimize scroll containers */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Snap scrolling for carousels */
+  .snap-scroll {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .snap-scroll > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* Prevent text selection on interactive elements */
+@media (max-width: 768px) {
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .card,
+  .clickable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection in content areas */
+  p,
+  .content,
+  .text-content {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Improve form inputs on mobile */
+@media (max-width: 768px) {
+  /* Prevent zoom on input focus (iOS) */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  
+  /* Better input styling for touch */
+  input,
+  textarea,
+  select {
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  
+  /* Larger checkboxes and radio buttons */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+}
+
+/* Optimize modals and overlays for mobile */
+@media (max-width: 768px) {
+  .modal,
+  .overlay {
+    padding: 16px;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+  }
+  
+  /* Bottom sheet style for mobile */
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 24px 24px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  
+  .safe-top {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  
+  .safe-left {
+    padding-left: max(12px, env(safe-area-inset-left));
+  }
+  
+  .safe-right {
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* Mobile input area fixes */
+@media (max-width: 768px) {
+  /* Ensure input area doesn't get cut off */
+  [data-input-area] {
+    position: relative;
+    z-index: 40;
+    background: transparent;
+  }
+  
+  /* Prevent input area from being hidden behind keyboard */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    [data-input-area] {
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    }
+  }
+  
+  /* Ensure buttons don't overflow on small screens */
+  [data-input-area] button {
+    flex-shrink: 0;
+    min-width: 48px;
+    min-height: 48px;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Ensure button icons are visible */
+  [data-input-area] button svg {
+    display: block !important;
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px;
+    min-height: 20px;
+  }
+  
+  /* Prevent textarea from overflowing */
+  [data-input-area] textarea {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+}
+
+/* Utility classes for touch-friendly spacing */
+@media (max-width: 768px) {
+  .touch-spacing-sm {
+    padding: 8px;
+  }
+  
+  .touch-spacing-md {
+    padding: 12px;
+  }
+  
+  .touch-spacing-lg {
+    padding: 16px;
+  }
+  
+  .touch-spacing-xl {
+    padding: 24px;
+  }
+  
+  /* Gap utilities for touch */
+  .touch-gap-sm {
+    gap: 12px;
+  }
+  
+  .touch-gap-md {
+    gap: 16px;
+  }
+  
+  .touch-gap-lg {
+    gap: 24px;
+  }
+}
+
+/* Improve visibility of focus states on mobile */
+@media (max-width: 768px) {
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid rgba(139, 92, 246, 0.6);
+    outline-offset: 2px;
+  }
+  
+  /* Remove default focus outline */
+  button:focus,
+  a:focus,
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+  }
+}
+
+/* Optimize animations for mobile performance */
+@media (max-width: 768px) {
+  /* Reduce animation complexity */
+  .animate-fade-in,
+  .animate-slide-in-up,
+  .animate-slide-in-down {
+    animation-duration: 0.3s;
+  }
+  
+  /* Disable complex animations on low-end devices */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-float,
+    .animate-glow,
+    .animate-pulse-glow {
+      animation: none;
+    }
+  }
+}
+
+/* Touch-friendly navigation */
+@media (max-width: 768px) {
+  nav a,
+  .nav-link {
+    min-height: 48px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Hamburger menu button */
+  .menu-button {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 12px;
+  }
+  
+  /* Mobile menu */
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(20px);
+  }
+  
+  .mobile-menu-item {
+    min-height: 56px;
+    padding: 16px 24px;
+    font-size: 18px;
+  }
+}
+
+/* Improve readability on mobile */
+@media (max-width: 768px) {
+  /* Comfortable line height */
+  p,
+  .text-content {
+    line-height: 1.6;
+  }
+  
+  /* Adequate font sizes */
+  .text-sm-mobile {
+    font-size: 14px;
+  }
+  
+  .text-base-mobile {
+    font-size: 16px;
+  }
+  
+  .text-lg-mobile {
+    font-size: 18px;
+  }
+  
+  /* Better contrast for readability */
+  .text-gray-400 {
+    color: rgb(156, 163, 175);
+  }
+  
+  .text-gray-300 {
+    color: rgb(209, 213, 219);
+  }
+}
+
+/* ============================================
+   BROWSER FALLBACKS & PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* Fallback for backdrop-filter (glassmorphism) */
+@supports not (backdrop-filter: blur(10px)) {
+  .glass-card,
+  .btn-glass,
+  .btn-glass-primary,
+  .btn-glass-secondary,
+  .btn-glass-success,
+  .btn-glass-danger,
+  .btn-glass-ghost {
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .glass-card,
+  .dark .btn-glass,
+  .dark .btn-glass-primary,
+  .dark .btn-glass-secondary,
+  .dark .btn-glass-success,
+  .dark .btn-glass-danger,
+  .dark .btn-glass-ghost {
+    background: rgba(26, 26, 26, 0.95);
+  }
+}
+
+/* Fallback for CSS Grid */
+@supports not (display: grid) {
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .grid > * {
+    flex: 1 1 auto;
+  }
+}
+
+/* Fallback for CSS Variables */
+@supports not (--test: 0) {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+    background-color: #0a0a0a;
+    color: #E5E5EA;
+  }
+}
+
+/* Fallback for clamp() function */
+@supports not (font-size: clamp(1rem, 2vw, 1.25rem)) {
+  .heading-1 {
+    font-size: 3rem;
+  }
+  
+  .heading-2 {
+    font-size: 2.5rem;
+  }
+  
+  .heading-3 {
+    font-size: 2rem;
+  }
+  
+  .body-large {
+    font-size: 1.125rem;
+  }
+  
+  @media (min-width: 768px) {
+    .heading-1 {
+      font-size: 4rem;
+    }
+    
+    .heading-2 {
+      font-size: 3rem;
+    }
+    
+    .heading-3 {
+      font-size: 2.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .heading-1 {
+      font-size: 5rem;
+    }
+    
+    .heading-2 {
+      font-size: 3.5rem;
+    }
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable all custom animations */
+  .neon-glow-base,
+  .shimmer-silver,
+  .btn-glass-primary,
+  .btn-glass-secondary,
+  .btn-glass-success,
+  .btn-glass-danger,
+  .btn-glass-ghost {
+    animation: none !important;
+  }
+  
+  /* Remove transform animations */
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    transform: none !important;
+  }
+}
+
+/* Performance Optimizations */
+/* Use GPU acceleration for animations */
+.neon-glow-base,
+.shimmer-silver,
+.btn-glass-primary,
+.btn-glass-secondary,
+.glass-card,
+[class*="animate-"] {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize repaints */
+.neon-glow-base::before,
+.btn-glass-primary::before,
+.btn-glass-secondary::before {
+  will-change: left;
+  transform: translateZ(0);
+}
+
+/* Contain layout shifts */
+.glass-card,
+.btn-glass-primary,
+.btn-glass-secondary {
+  contain: layout style paint;
+}
+
+/* Adaptive Animation Variables */
+:root {
+  --animation-duration: 0.6s;
+  --blur-intensity: 20px;
+  --glow-intensity: 1;
+}
+
+/* Apply adaptive variables to animations */
+.neon-glow-base {
+  animation-duration: var(--animation-duration);
+}
+
+.glass-card {
+  backdrop-filter: blur(var(--blur-intensity));
+}
+
+.neon-glow-base:hover {
+  box-shadow: 
+    0 0 calc(15px * var(--glow-intensity)) rgba(139, 92, 246, 0.8),
+    0 0 calc(25px * var(--glow-intensity)) rgba(6, 182, 212, 0.6),
+    0 0 calc(35px * var(--glow-intensity)) rgba(139, 92, 246, 0.4);
+}
+
+/* Low-end device optimizations */
+@media (max-width: 640px) {
+  /* Reduce blur intensity on mobile */
+  .glass-card,
+  .btn-glass,
+  .btn-glass-primary,
+  .btn-glass-secondary {
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Simplify animations on mobile */
+  .neon-glow-base {
+    animation-duration: 0.4s;
+  }
+  
+  /* Reduce shadow complexity */
+  .btn-primary,
+  .btn-secondary {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .glass-card,
+  .btn-glass,
+  .btn-glass-primary,
+  .btn-glass-secondary {
+    border-width: 2px;
+    border-color: currentColor;
+  }
+  
+  .gradient-text,
+  .gradient-text-modern {
+    background: none;
+    color: currentColor;
+  }
+}
+
+/* Print styles */
+@media print {
+  /* Disable all animations for print */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  /* Remove glassmorphism effects */
+  .glass-card,
+  .btn-glass,
+  .btn-glass-primary,
+  .btn-glass-secondary {
+    background: white;
+    backdrop-filter: none;
+  }
+  
+  /* Simplify colors for print */
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+/* Safari-specific optimizations */
+@supports (-webkit-backdrop-filter: blur(10px)) {
+  .glass-card,
+  .btn-glass,
+  .btn-glass-primary,
+  .btn-glass-secondary {
+    -webkit-backdrop-filter: blur(var(--blur-intensity));
+  }
+}
+
+/* Firefox-specific optimizations */
+@-moz-document url-prefix() {
+  /* Firefox doesn't support backdrop-filter well, use solid backgrounds */
+  .glass-card {
+    background: rgba(42, 42, 42, 0.95);
+  }
+  
+  .btn-glass-primary {
+    background: rgba(59, 130, 246, 0.2);
+  }
+  
+  .btn-glass-secondary {
+    background: rgba(107, 114, 128, 0.2);
+  }
+}
+
+/* Edge-specific optimizations */
+@supports (-ms-ime-align: auto) {
+  /* Older Edge versions */
+  .glass-card,
+  .btn-glass,
+  .btn-glass-primary,
+  .btn-glass-secondary {
+    background: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Optimize for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .glass-card:hover {
+    transform: none;
+  }
+  
+  /* Increase touch target sizes */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Simplify animations for better touch performance */
+  .neon-glow-base {
+    animation-duration: 0.3s;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  /* Reduce brightness for OLED screens */
+  body {
+    background-color: #000000;
+  }
+  
+  .glass-card {
+    background: rgba(20, 20, 20, 0.8);
+  }
+}
+
+/* Light mode fallback */
+@media (prefers-color-scheme: light) {
+  body:not(.dark) {
+    background-color: #ffffff;
+    color: #1a1a1a;
+  }
+  
+  body:not(.dark) .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+
+/* ============================================
+   APPLE NEON THEME - LIGHT MODE
+   ============================================ */
+
+.light,
+[data-theme="light"] {
+  /* Apple фоны */
+  --apple-bg-primary: #FFFFFF;
+  --apple-bg-secondary: #FAFAFA;
+  --apple-bg-tertiary: #F5F5F7;
+  
+  /* Apple Neon Colors */
+  --apple-blue: #007AFF;
+  --apple-blue-vibrant: #0A84FF;
+  --apple-purple: #AF52DE;
+  --apple-purple-vibrant: #BF5AF2;
+  --apple-pink: #FF2D55;
+  --apple-pink-vibrant: #FF375F;
+  --apple-cyan: #32ADE6;
+  --apple-cyan-vibrant: #64D2FF;
+  --apple-mint: #00C7BE;
+  --apple-orange: #FF9500;
+  --apple-yellow: #FFCC00;
+  --apple-green: #34C759;
+  --apple-indigo: #5856D6;
+  
+  /* Текст - темно-синий вместо серого */
+  --apple-text-primary: #000000;
+  --apple-text-secondary: #1D3557;  /* Темно-синий */
+  --apple-text-tertiary: #457B9D;   /* Средний синий */
+  
+  /* Тени */
+  --apple-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --apple-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --apple-shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.12);
+  --apple-shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.16);
+}
+
+/* Light theme module colors */
+.light {
+  /* Module Colors - Light Theme */
+  --module-marketing: #f97316;
+  --module-marketing-light: #fb923c;
+  --module-marketing-dark: #ea580c;
+  
+  --module-moderation: #a855f7;
+  --module-moderation-light: #c084fc;
+  --module-moderation-dark: #9333ea;
+  
+  --module-project: #10b981;
+  --module-project-light: #34d399;
+  --module-project-dark: #059669;
+  
+  --module-analytics: #3b82f6;
+  --module-analytics-light: #60a5fa;
+  --module-analytics-dark: #2563eb;
+  
+  --module-system: #ef4444;
+  --module-system-light: #f87171;
+  --module-system-dark: #dc2626;
+}
+
+/* Apple Glass Card - Яркие цветные карточки */
+.light .apple-glass-card,
+.light .glass-card,
+.light .card {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.95) 0%, 
+    rgba(239, 246, 255, 0.9) 100%);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(0, 122, 255, 0.15);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 122, 255, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.light .apple-glass-card:hover,
+.light .glass-card:hover,
+.light .card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(0, 122, 255, 0.3);
+  box-shadow: 
+    0 16px 48px rgba(0, 122, 255, 0.2),
+    0 0 40px rgba(191, 90, 242, 0.15),
+    0 0 0 1px rgba(0, 122, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Цветные варианты карточек */
+.light .card-blue {
+  background: linear-gradient(135deg, 
+    rgba(0, 122, 255, 0.08) 0%, 
+    rgba(100, 210, 255, 0.05) 100%);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.light .card-purple {
+  background: linear-gradient(135deg, 
+    rgba(191, 90, 242, 0.08) 0%, 
+    rgba(175, 82, 222, 0.05) 100%);
+  border-color: rgba(191, 90, 242, 0.2);
+}
+
+.light .card-pink {
+  background: linear-gradient(135deg, 
+    rgba(255, 45, 85, 0.08) 0%, 
+    rgba(255, 55, 95, 0.05) 100%);
+  border-color: rgba(255, 45, 85, 0.2);
+}
+
+.light .card-cyan {
+  background: linear-gradient(135deg, 
+    rgba(50, 173, 230, 0.08) 0%, 
+    rgba(0, 199, 190, 0.05) 100%);
+  border-color: rgba(50, 173, 230, 0.2);
+}
+
+.light .card-orange {
+  background: linear-gradient(135deg, 
+    rgba(255, 149, 0, 0.08) 0%, 
+    rgba(255, 159, 10, 0.05) 100%);
+  border-color: rgba(255, 149, 0, 0.2);
+}
+
+.light .card-green {
+  background: linear-gradient(135deg, 
+    rgba(52, 199, 89, 0.08) 0%, 
+    rgba(48, 209, 88, 0.05) 100%);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+/* Apple Neon Buttons */
+.light .apple-button-primary,
+.light .btn-primary {
+  background: linear-gradient(180deg, #007AFF 0%, #0051D5 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 17px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 
+    0 4px 16px rgba(0, 122, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.light .apple-button-primary::before,
+.light .btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.3) 0%, 
+    transparent 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.light .apple-button-primary:hover,
+.light .btn-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.4),
+    0 0 32px rgba(0, 122, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.light .apple-button-primary:active,
+.light .btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Gradient Button */
+.light .apple-button-gradient,
+.light .btn-glass-primary {
+  background: linear-gradient(135deg, 
+    #007AFF 0%, 
+    #BF5AF2 50%, 
+    #FF2D55 100%);
+  background-size: 200% 200%;
+  animation: appleGradientShift 3s ease infinite;
+  color: white;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 
+    0 4px 16px rgba(0, 122, 255, 0.3),
+    0 4px 16px rgba(191, 90, 242, 0.2);
+  transition: all 0.2s ease;
+}
+
+.light .apple-button-gradient:hover,
+.light .btn-glass-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.4),
+    0 8px 24px rgba(191, 90, 242, 0.3),
+    0 0 40px rgba(255, 45, 85, 0.2);
+}
+
+/* Purple Button */
+.light .apple-button-purple,
+.light .btn-glass-secondary {
+  background: linear-gradient(135deg, #BF5AF2 0%, #AF52DE 100%);
+  color: white;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 16px rgba(191, 90, 242, 0.3);
+  transition: all 0.2s ease;
+}
+
+.light .apple-button-purple:hover,
+.light .btn-glass-secondary:hover {
+  transform: scale(1.02);
+  box-shadow: 
+    0 8px 24px rgba(191, 90, 242, 0.4),
+    0 0 32px rgba(191, 90, 242, 0.3);
+}
+
+/* Apple Input */
+.light .apple-input,
+.light .input-field {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 17px;
+  color: #000000;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.light .apple-input:focus,
+.light .input-field:focus {
+  outline: none;
+  border-color: #007AFF;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 4px 16px rgba(0, 122, 255, 0.15),
+    0 0 0 4px rgba(0, 122, 255, 0.1),
+    0 0 24px rgba(0, 122, 255, 0.2);
+}
+
+.light .apple-input::placeholder,
+.light .input-field::placeholder {
+  color: #86868B;
+}
+
+/* Apple Gradient Text */
+.light .apple-gradient-text,
+.light .gradient-text {
+  background: linear-gradient(135deg, 
+    #007AFF 0%, 
+    #BF5AF2 50%, 
+    #FF2D55 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: appleGradientShift 4s ease-in-out infinite;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.light .apple-gradient-text-rainbow {
+  background: linear-gradient(90deg, 
+    #FF2D55 0%, 
+    #FF9500 16.67%, 
+    #FFCC00 33.33%, 
+    #34C759 50%, 
+    #32ADE6 66.67%, 
+    #BF5AF2 83.33%, 
+    #FF2D55 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: appleRainbowShift 6s linear infinite;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Apple Hero */
+.light .apple-hero {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(180deg, 
+    #FFFFFF 0%, 
+    #F5F5F7 100%);
+  overflow: hidden;
+}
+
+.light .apple-mesh-gradient {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(0, 122, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(191, 90, 242, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 70%, rgba(255, 45, 85, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(50, 173, 230, 0.15) 0%, transparent 50%);
+  animation: appleMeshMove 20s ease-in-out infinite;
+}
+
+/* Apple Feature Card */
+.light .apple-feature-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.light .apple-feature-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 122, 255, 0.2);
+}
+
+.light .apple-feature-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #007AFF 0%, #BF5AF2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+}
+
+/* Animations */
+@keyframes appleGradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes appleRainbowShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes appleMeshMove {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* Typography */
+.light .apple-display-large {
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #000000;
+}
+
+.light .apple-display-medium {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #000000;
+}
+
+.light .apple-title-1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: #000000;
+}
+
+.light .apple-body {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #000000;
+}
+
+.light .apple-body-large {
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #86868B;
+}
+
+/* Background colors - Яркий градиентный фон */
+.light {
+  background: linear-gradient(180deg, 
+    #FFFFFF 0%, 
+    #F0F9FF 50%, 
+    #FAF5FF 100%);
+  color: #000000;
+  min-height: 100vh;
+}
+
+.light body {
+  background: linear-gradient(180deg, 
+    #FFFFFF 0%, 
+    #F0F9FF 50%, 
+    #FAF5FF 100%);
+  color: #000000;
+}
+
+/* Navigation */
+.light nav {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Footer - яркий градиент */
+.light footer {
+  background: linear-gradient(180deg, 
+    rgba(240, 249, 255, 0.8) 0%, 
+    rgba(250, 245, 255, 0.9) 100%);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 122, 255, 0.1);
+  color: #1D1D1F;
+}
+
+/* Text and border colors are handled by Tailwind's dark mode */
+
+
+/* Замена серого текста на темно-синий в светлой теме */
+.light .text-gray-600 {
+  color: #1D3557 !important;  /* Темно-синий вместо серого */
+}
+
+.light .text-gray-300 {
+  color: #1D3557 !important;  /* Темно-синий для читаемости */
+}
+
+.light .text-gray-100 {
+  color: #000000 !important;  /* Черный для контраста */
+}
+
+.light .text-gray-200 {
+  color: #1D3557 !important;  /* Темно-синий */
+}
+
+.light .text-gray-900 {
+  color: #000000 !important;  /* Черный для заголовков */
+}
+
+/* Белый текст в светлой теме заменяем на темные цвета */
+.light .text-white {
+  color: #000000 !important;  /* Черный вместо белого */
+}
+
+.light .text-gray-100,
+.light .text-gray-200 {
+  color: #1D3557 !important;  /* Темно-синий для лучшей читаемости */
+}
+
+/* Темно-синий текст для описаний в светлой теме */
+.light p.text-gray-600 {
+  color: #1D3557 !important;
+}
+
+.light .body-large.text-gray-600 {
+  color: #1D3557 !important;
+}
+
+/* Цветные акценты для светлой темы */
+.light .text-cyan-300 {
+  color: #007AFF !important;  /* Apple Blue */
+}
+
+.light .text-cyan-400 {
+  color: #007AFF !important;  /* Apple Blue */
+}
+
+.light .text-purple-300 {
+  color: #BF5AF2 !important;  /* Apple Purple */
+}
+
+.light .text-purple-400 {
+  color: #BF5AF2 !important;  /* Apple Purple */
+}
+
+.light .text-blue-600 {
+  color: #007AFF !important;  /* Apple Blue */
+}
+
+
+/* SmartSearchInput - Неоновый градиент для светлой темы */
+.light input[role="searchbox"],
+.light .neon-glow-purple {
+  background: linear-gradient(135deg, 
+    rgba(0, 122, 255, 0.08) 0%, 
+    rgba(191, 90, 242, 0.08) 50%, 
+    rgba(50, 173, 230, 0.08) 100%) !important;
+  backdrop-filter: blur(20px) !important;
+  border-color: rgba(0, 122, 255, 0.3) !important;
+  color: #000000 !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 122, 255, 0.15),
+    0 0 20px rgba(191, 90, 242, 0.1) !important;
+}
+
+.light input[role="searchbox"]::placeholder {
+  color: #457B9D !important;  /* Средний синий */
+}
+
+.light input[role="searchbox"]:focus {
+  border-color: rgba(0, 122, 255, 0.6) !important;
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.25),
+    0 0 0 4px rgba(0, 122, 255, 0.1),
+    0 0 40px rgba(191, 90, 242, 0.2) !important;
+}
+
+.light input[role="searchbox"]:hover:not(:focus) {
+  border-color: rgba(191, 90, 242, 0.4) !important;
+  box-shadow: 
+    0 6px 20px rgba(0, 122, 255, 0.2),
+    0 0 30px rgba(191, 90, 242, 0.15) !important;
+}
+
+/* Иконка поиска в светлой теме */
+.light input[role="searchbox"] + * svg {
+  color: #007AFF !important;
+}
+
+/* Карточки отзывов в светлой теме */
+.light .testimonial-card {
+  background: linear-gradient(135deg, 
+    rgba(0, 122, 255, 0.12) 0%, 
+    rgba(191, 90, 242, 0.08) 50%, 
+    rgba(50, 173, 230, 0.12) 100%) !important;
+  backdrop-filter: blur(30px) !important;
+  border-color: rgba(0, 122, 255, 0.4) !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 122, 255, 0.15),
+    0 0 40px rgba(191, 90, 242, 0.1) !important;
+}
+
+.light .testimonial-card:hover {
+  box-shadow: 
+    0 12px 48px rgba(0, 122, 255, 0.25),
+    0 0 60px rgba(191, 90, 242, 0.2) !important;
+}

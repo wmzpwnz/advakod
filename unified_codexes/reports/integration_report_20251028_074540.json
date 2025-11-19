@@ -1,0 +1,623 @@
+{
+  "timestamp": "2025-10-28T07:45:40.480479",
+  "new_files_count": 5,
+  "processed_files": 100,
+  "created_chunks": 14940,
+  "validation_results": {
+    "total_files": 100,
+    "valid_files": 0
+  },
+  "integration_results": {
+    "timestamp": "2025-10-28T07:45:40.478805",
+    "summary": {
+      "total_documents_processed": 100,
+      "total_chunks_created": 14940,
+      "successful_integrations": 100,
+      "failed_integrations": 0
+    },
+    "integration_results": [
+      {
+        "document_id": "pdf_0_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_0_289-11.json"
+      },
+      {
+        "document_id": "pdf_1_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_1_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_2_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_2_198.json"
+      },
+      {
+        "document_id": "pdf_3_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_3_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_4_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_4_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_5_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_5_289-11.json"
+      },
+      {
+        "document_id": "pdf_6_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_6_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_7_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_7_198.json"
+      },
+      {
+        "document_id": "pdf_8_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_8_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_9_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_9_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_10_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_10_289-11.json"
+      },
+      {
+        "document_id": "pdf_11_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_11_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_12_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_12_198.json"
+      },
+      {
+        "document_id": "pdf_13_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_13_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_14_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_14_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_15_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_15_289-11.json"
+      },
+      {
+        "document_id": "pdf_16_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_16_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_17_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_17_198.json"
+      },
+      {
+        "document_id": "pdf_18_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_18_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_19_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_19_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_20_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_20_289-11.json"
+      },
+      {
+        "document_id": "pdf_21_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_21_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_22_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_22_198.json"
+      },
+      {
+        "document_id": "pdf_23_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_23_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_24_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_24_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_25_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_25_289-11.json"
+      },
+      {
+        "document_id": "pdf_26_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_26_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_27_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_27_198.json"
+      },
+      {
+        "document_id": "pdf_28_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_28_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_29_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_29_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_30_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_30_289-11.json"
+      },
+      {
+        "document_id": "pdf_31_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_31_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_32_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_32_198.json"
+      },
+      {
+        "document_id": "pdf_33_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_33_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_34_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_34_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_35_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_35_289-11.json"
+      },
+      {
+        "document_id": "pdf_36_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_36_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_37_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_37_198.json"
+      },
+      {
+        "document_id": "pdf_38_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_38_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_39_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_39_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_40_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_40_289-11.json"
+      },
+      {
+        "document_id": "pdf_41_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_41_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_42_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_42_198.json"
+      },
+      {
+        "document_id": "pdf_43_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_43_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_44_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_44_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_45_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_45_289-11.json"
+      },
+      {
+        "document_id": "pdf_46_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_46_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_47_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_47_198.json"
+      },
+      {
+        "document_id": "pdf_48_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_48_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_49_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_49_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_50_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_50_289-11.json"
+      },
+      {
+        "document_id": "pdf_51_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_51_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_52_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_52_198.json"
+      },
+      {
+        "document_id": "pdf_53_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_53_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_54_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_54_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_55_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_55_289-11.json"
+      },
+      {
+        "document_id": "pdf_56_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_56_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_57_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_57_198.json"
+      },
+      {
+        "document_id": "pdf_58_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_58_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_59_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_59_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_60_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_60_289-11.json"
+      },
+      {
+        "document_id": "pdf_61_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_61_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_62_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_62_198.json"
+      },
+      {
+        "document_id": "pdf_63_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_63_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_64_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_64_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_65_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_65_289-11.json"
+      },
+      {
+        "document_id": "pdf_66_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_66_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_67_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_67_198.json"
+      },
+      {
+        "document_id": "pdf_68_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_68_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_69_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_69_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_70_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_70_289-11.json"
+      },
+      {
+        "document_id": "pdf_71_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_71_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_72_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_72_198.json"
+      },
+      {
+        "document_id": "pdf_73_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_73_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_74_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_74_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_75_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_75_289-11.json"
+      },
+      {
+        "document_id": "pdf_76_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_76_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_77_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_77_198.json"
+      },
+      {
+        "document_id": "pdf_78_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_78_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_79_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_79_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_80_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_80_289-11.json"
+      },
+      {
+        "document_id": "pdf_81_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_81_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_82_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_82_198.json"
+      },
+      {
+        "document_id": "pdf_83_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_83_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_84_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_84_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_85_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_85_289-11.json"
+      },
+      {
+        "document_id": "pdf_86_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_86_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_87_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_87_198.json"
+      },
+      {
+        "document_id": "pdf_88_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_88_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_89_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_89_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_90_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_90_289-11.json"
+      },
+      {
+        "document_id": "pdf_91_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_91_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_92_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_92_198.json"
+      },
+      {
+        "document_id": "pdf_93_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_93_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_94_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_94_0001202203030006.json"
+      },
+      {
+        "document_id": "pdf_95_289-11",
+        "chunks_count": 70,
+        "text_length": 53940,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_95_289-11.json"
+      },
+      {
+        "document_id": "pdf_96_0001201905010039",
+        "chunks_count": 334,
+        "text_length": 260098,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_96_0001201905010039.json"
+      },
+      {
+        "document_id": "pdf_97_198",
+        "chunks_count": 70,
+        "text_length": 54507,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_97_198.json"
+      },
+      {
+        "document_id": "pdf_98_0001201410140002",
+        "chunks_count": 130,
+        "text_length": 101283,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_98_0001201410140002.json"
+      },
+      {
+        "document_id": "pdf_99_0001202203030006",
+        "chunks_count": 143,
+        "text_length": 110783,
+        "processed_file": "/root/advakod/unified_codexes/rag_integration/processed_documents/pdf_99_0001202203030006.json"
+      }
+    ],
+    "output_directory": "/root/advakod/unified_codexes/rag_integration"
+  },
+  "status": "success"
+}

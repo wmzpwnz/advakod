@@ -1,0 +1,160 @@
+file,line,method,endpoint,body_schema,expected_response_schema,auth_type,websocket_flag,type,full_line
+contexts/AuthContext.js,29,GET,/auth/me,unknown,unknown,unknown,False,axios_call,const response = await axios.get(getApiUrl('/auth/me'));
+contexts/AuthContext.js,29,GET,/auth/me,unknown,unknown,unknown,False,http_method,const response = await axios.get(getApiUrl('/auth/me'));
+contexts/AuthContext.js,29,unknown,/auth/me,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(getApiUrl('/auth/me'));
+contexts/AuthContext.js,70,POST,/auth/login-email,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/auth/login-email'), {"
+contexts/AuthContext.js,70,POST,/auth/login-email,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/auth/login-email'), {"
+contexts/AuthContext.js,70,unknown,/auth/login-email,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/auth/login-email'), {"
+contexts/AuthContext.js,92,POST,/auth/register,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/auth/register'), userData);"
+contexts/AuthContext.js,92,POST,/auth/register,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/auth/register'), userData);"
+contexts/AuthContext.js,92,unknown,/auth/register,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/auth/register'), userData);"
+components/FileUpload.js,81,POST,/api/v1/files/upload,unknown,unknown,unknown,False,axios_call,"const response = await axios.post('/api/v1/files/upload', formData, {"
+components/FileUpload.js,81,POST,/api/v1/files/upload,unknown,unknown,unknown,False,http_method,"const response = await axios.post('/api/v1/files/upload', formData, {"
+components/LogsViewer.js,53,GET,/admin/logs/audit,unknown,unknown,unknown,False,axios_call,const response = await axios.get(`${getApiUrl('/admin/logs/audit')}?${params}`);
+components/LogsViewer.js,53,GET,/admin/logs/audit,unknown,unknown,unknown,False,http_method,const response = await axios.get(`${getApiUrl('/admin/logs/audit')}?${params}`);
+components/LogsViewer.js,53,unknown,/admin/logs/audit,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(`${getApiUrl('/admin/logs/audit')}?${params}`);
+components/LogsViewer.js,85,GET,/admin/logs/export,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(`${getApiUrl('/admin/logs/export')}?${params}`, {"
+components/LogsViewer.js,85,GET,/admin/logs/export,unknown,unknown,unknown,False,http_method,"const response = await axios.get(`${getApiUrl('/admin/logs/export')}?${params}`, {"
+components/LogsViewer.js,85,unknown,/admin/logs/export,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(`${getApiUrl('/admin/logs/export')}?${params}`, {"
+components/LoRAManagement.js,36,GET,/api/v1/canary-lora/lora/status,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/status'), {"
+components/LoRAManagement.js,36,GET,/api/v1/canary-lora/lora/status,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/status'), {"
+components/LoRAManagement.js,36,unknown,/api/v1/canary-lora/lora/status,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/status'), {"
+components/LoRAManagement.js,49,GET,/api/v1/canary-lora/lora/quality-statistics,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/quality-statistics'), {"
+components/LoRAManagement.js,49,GET,/api/v1/canary-lora/lora/quality-statistics,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/quality-statistics'), {"
+components/LoRAManagement.js,49,unknown,/api/v1/canary-lora/lora/quality-statistics,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/quality-statistics'), {"
+components/LoRAManagement.js,63,GET,/api/v1/canary-lora/lora/training-batch,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/training-batch'), {"
+components/LoRAManagement.js,63,GET,/api/v1/canary-lora/lora/training-batch,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/training-batch'), {"
+components/LoRAManagement.js,63,unknown,/api/v1/canary-lora/lora/training-batch,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/training-batch'), {"
+components/LoRAManagement.js,80,GET,/api/v1/canary-lora/lora/priority-examples,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/priority-examples'), {"
+components/LoRAManagement.js,80,GET,/api/v1/canary-lora/lora/priority-examples,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/priority-examples'), {"
+components/LoRAManagement.js,80,unknown,/api/v1/canary-lora/lora/priority-examples,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/priority-examples'), {"
+components/LoRAManagement.js,97,GET,/api/v1/canary-lora/lora/export-data,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/export-data'), {"
+components/LoRAManagement.js,97,GET,/api/v1/canary-lora/lora/export-data,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/export-data'), {"
+components/LoRAManagement.js,97,unknown,/api/v1/canary-lora/lora/export-data,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/lora/export-data'), {"
+components/TokenBalance.js,16,GET,/tokens/balance,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/tokens/balance'), {"
+components/TokenBalance.js,16,GET,/tokens/balance,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/tokens/balance'), {"
+components/TokenBalance.js,16,unknown,/tokens/balance,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/tokens/balance'), {"
+components/TwoFactorSetup.js,24,POST,/api/v1/2fa/setup,unknown,unknown,unknown,False,axios_call,const response = await axios.post('/api/v1/2fa/setup');
+components/TwoFactorSetup.js,24,POST,/api/v1/2fa/setup,unknown,unknown,unknown,False,http_method,const response = await axios.post('/api/v1/2fa/setup');
+components/TwoFactorSetup.js,47,POST,/api/v1/2fa/confirm,unknown,unknown,unknown,False,axios_call,"const response = await axios.post('/api/v1/2fa/confirm', {"
+components/TwoFactorSetup.js,47,POST,/api/v1/2fa/confirm,unknown,unknown,unknown,False,http_method,"const response = await axios.post('/api/v1/2fa/confirm', {"
+components/ChatHistory.js,36,GET,/chat/sessions,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/chat/sessions'), {"
+components/ChatHistory.js,36,GET,/chat/sessions,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/chat/sessions'), {"
+components/ChatHistory.js,36,unknown,/chat/sessions,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/chat/sessions'), {"
+components/ChatHistory.js,65,POST,/chat/sessions,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/chat/sessions'), {"
+components/ChatHistory.js,65,POST,/chat/sessions,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/chat/sessions'), {"
+components/ChatHistory.js,65,unknown,/chat/sessions,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/chat/sessions'), {"
+components/ChatHistory.js,86,DELETE,unknown,unknown,unknown,unknown,False,axios_call,await axios.delete(getApiUrl(`/chat/sessions/${sessionId}`));
+components/ChatHistory.js,86,DELETE,unknown,unknown,unknown,unknown,False,http_method,await axios.delete(getApiUrl(`/chat/sessions/${sessionId}`));
+components/ChatHistory.js,108,PUT,unknown,{sessionId},unknown,unknown,False,axios_call,"await axios.put(getApiUrl(`/chat/sessions/${sessionId}`), {"
+components/ChatHistory.js,108,PUT,unknown,{sessionId},unknown,unknown,False,http_method,"await axios.put(getApiUrl(`/chat/sessions/${sessionId}`), {"
+components/DocumentManagement.js,59,GET,/admin/documents,unknown,unknown,unknown,False,axios_call,const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`);
+components/DocumentManagement.js,59,GET,/admin/documents,unknown,unknown,unknown,False,http_method,const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`);
+components/DocumentManagement.js,59,unknown,/admin/documents,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(`${getApiUrl('/admin/documents')}?${params}`);
+components/DocumentManagement.js,79,GET,/admin/documents/search,unknown,unknown,unknown,False,axios_call,const response = await axios.get(`${getApiUrl('/admin/documents/search')}?query=${encodeURIComponent(searchTerm)}`);
+components/DocumentManagement.js,79,GET,/admin/documents/search,unknown,unknown,unknown,False,http_method,const response = await axios.get(`${getApiUrl('/admin/documents/search')}?query=${encodeURIComponent(searchTerm)}`);
+components/DocumentManagement.js,79,unknown,/admin/documents/search,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(`${getApiUrl('/admin/documents/search')}?query=${encodeURIComponent(searchTerm)}`);
+components/DocumentManagement.js,120,POST,/admin/documents/upload,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/admin/documents/upload'), formData, {"
+components/DocumentManagement.js,120,POST,/admin/documents/upload,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/admin/documents/upload'), formData, {"
+components/DocumentManagement.js,120,unknown,/admin/documents/upload,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/admin/documents/upload'), formData, {"
+components/DocumentManagement.js,238,POST,unknown,unknown,unknown,unknown,False,axios_call,const response = await axios.post(
+components/DocumentManagement.js,238,POST,unknown,unknown,unknown,unknown,False,http_method,const response = await axios.post(
+components/DocumentManagement.js,239,unknown,/admin/documents/upload-url,unknown,unknown,unknown,False,getApiUrl,"getApiUrl('/admin/documents/upload-url'),"
+components/DocumentManagement.js,315,DELETE,/admin/documents,unknown,unknown,unknown,False,axios_call,const response = await axios.delete(`${getApiUrl('/admin/documents')}/${documentId}`);
+components/DocumentManagement.js,315,DELETE,/admin/documents,unknown,unknown,unknown,False,http_method,const response = await axios.delete(`${getApiUrl('/admin/documents')}/${documentId}`);
+components/DocumentManagement.js,315,unknown,/admin/documents,unknown,unknown,unknown,False,getApiUrl,const response = await axios.delete(`${getApiUrl('/admin/documents')}/${documentId}`);
+components/RAGSettings.js,37,GET,/api/v1/enhanced-rag/status,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/enhanced-rag/status'), {"
+components/RAGSettings.js,37,GET,/api/v1/enhanced-rag/status,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/enhanced-rag/status'), {"
+components/RAGSettings.js,37,unknown,/api/v1/enhanced-rag/status,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/enhanced-rag/status'), {"
+components/RAGSettings.js,77,POST,/api/v1/enhanced-rag/generate-response,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/api/v1/enhanced-rag/generate-response'), {"
+components/RAGSettings.js,77,POST,/api/v1/enhanced-rag/generate-response,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/api/v1/enhanced-rag/generate-response'), {"
+components/RAGSettings.js,77,unknown,/api/v1/enhanced-rag/generate-response,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/api/v1/enhanced-rag/generate-response'), {"
+components/CanaryManagement.js,37,GET,/api/v1/canary-lora/canary/status,unknown,unknown,unknown,False,axios_call,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/canary/status'), {"
+components/CanaryManagement.js,37,GET,/api/v1/canary-lora/canary/status,unknown,unknown,unknown,False,http_method,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/canary/status'), {"
+components/CanaryManagement.js,37,unknown,/api/v1/canary-lora/canary/status,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.get(getApiUrl('/api/v1/canary-lora/canary/status'), {"
+components/CanaryManagement.js,56,POST,/api/v1/canary-lora/canary/deploy,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/api/v1/canary-lora/canary/deploy'), {"
+components/CanaryManagement.js,56,POST,/api/v1/canary-lora/canary/deploy,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/api/v1/canary-lora/canary/deploy'), {"
+components/CanaryManagement.js,56,unknown,/api/v1/canary-lora/canary/deploy,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/api/v1/canary-lora/canary/deploy'), {"
+components/CanaryManagement.js,87,POST,unknown,{modelId},unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl(`/api/v1/canary-lora/canary/promote/${modelId}`), {}, {"
+components/CanaryManagement.js,87,POST,unknown,{modelId},unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl(`/api/v1/canary-lora/canary/promote/${modelId}`), {}, {"
+components/CanaryManagement.js,105,POST,unknown,{modelId},unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl(`/api/v1/canary-lora/canary/rollback/${modelId}`), {}, {"
+components/CanaryManagement.js,105,POST,unknown,{modelId},unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl(`/api/v1/canary-lora/canary/rollback/${modelId}`), {}, {"
+components/UserManagement.js,54,GET,/admin/users,unknown,unknown,unknown,False,axios_call,const response = await axios.get(`${getApiUrl('/admin/users')}?${params}`);
+components/UserManagement.js,54,GET,/admin/users,unknown,unknown,unknown,False,http_method,const response = await axios.get(`${getApiUrl('/admin/users')}?${params}`);
+components/UserManagement.js,54,unknown,/admin/users,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(`${getApiUrl('/admin/users')}?${params}`);
+components/UserManagement.js,75,DELETE,/admin/users,unknown,unknown,unknown,False,axios_call,const response = await axios.delete(`${getApiUrl('/admin/users')}/${userId}`);
+components/UserManagement.js,75,DELETE,/admin/users,unknown,unknown,unknown,False,http_method,const response = await axios.delete(`${getApiUrl('/admin/users')}/${userId}`);
+components/UserManagement.js,75,unknown,/admin/users,unknown,unknown,unknown,False,getApiUrl,const response = await axios.delete(`${getApiUrl('/admin/users')}/${userId}`);
+components/UserManagement.js,99,PATCH,/admin/users,{getApiUrl('/admin/users')},unknown,unknown,False,axios_call,const response = await axios.patch(`${getApiUrl('/admin/users')}/${userId}/toggle-status`);
+components/UserManagement.js,99,PATCH,/admin/users,{getApiUrl('/admin/users')},unknown,unknown,False,http_method,const response = await axios.patch(`${getApiUrl('/admin/users')}/${userId}/toggle-status`);
+components/UserManagement.js,99,unknown,/admin/users,unknown,unknown,unknown,False,getApiUrl,const response = await axios.patch(`${getApiUrl('/admin/users')}/${userId}/toggle-status`);
+hooks/useServiceWorker.js,120,unknown,/notifications/subscribe,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(getApiUrl('/notifications/subscribe'), {"
+hooks/useServiceWorker.js,120,unknown,/notifications/subscribe,unknown,unknown,unknown,False,getApiUrl,"const response = await fetch(getApiUrl('/notifications/subscribe'), {"
+hooks/useServiceWorker.js,148,unknown,/notifications/unsubscribe,unknown,unknown,unknown,False,fetch_call,"await fetch(getApiUrl('/notifications/unsubscribe'), {"
+hooks/useServiceWorker.js,148,unknown,/notifications/unsubscribe,unknown,unknown,unknown,False,getApiUrl,"await fetch(getApiUrl('/notifications/unsubscribe'), {"
+hooks/useServiceWorker.js,177,PUT,unknown,unknown,unknown,unknown,False,http_method,"await cache.put(key, new Response(JSON.stringify(data)));"
+hooks/useServiceWorker.js,198,DELETE,unknown,unknown,unknown,unknown,False,http_method,cacheNames.map(cacheName => caches.delete(cacheName))
+hooks/useWebSocket.js,21,unknown,unknown,unknown,unknown,unknown,True,websocket,const ws = new WebSocket(url);
+hooks/useChatWebSocket.js,56,unknown,unknown,unknown,unknown,unknown,True,websocket,const ws = new WebSocket(url);
+hooks/useLazyData.js,39,GET,unknown,unknown,unknown,unknown,False,http_method,const cached = cacheRef.current.get(cacheKey);
+hooks/useLazyData.js,103,DELETE,unknown,unknown,unknown,unknown,False,http_method,cacheRef.current.delete(cacheKey);
+pages/Profile.js,29,PUT,/api/v1/users/me,unknown,unknown,unknown,False,axios_call,"await axios.put('/api/v1/users/me', formData);"
+pages/Profile.js,29,PUT,/api/v1/users/me,unknown,unknown,unknown,False,http_method,"await axios.put('/api/v1/users/me', formData);"
+pages/LoRAManagement.js,47,GET,/lora/data/stats?days=7,unknown,unknown,unknown,False,axios_call,const response = await axios.get(getApiUrl('/lora/data/stats?days=7'));
+pages/LoRAManagement.js,47,GET,/lora/data/stats?days=7,unknown,unknown,unknown,False,http_method,const response = await axios.get(getApiUrl('/lora/data/stats?days=7'));
+pages/LoRAManagement.js,47,unknown,/lora/data/stats?days=7,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(getApiUrl('/lora/data/stats?days=7'));
+pages/LoRAManagement.js,68,GET,/lora/data,unknown,unknown,unknown,False,axios_call,const response = await axios.get(`${getApiUrl('/lora/data')}?${params}`);
+pages/LoRAManagement.js,68,GET,/lora/data,unknown,unknown,unknown,False,http_method,const response = await axios.get(`${getApiUrl('/lora/data')}?${params}`);
+pages/LoRAManagement.js,68,unknown,/lora/data,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(`${getApiUrl('/lora/data')}?${params}`);
+pages/LoRAManagement.js,82,POST,/lora/data/collect,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/lora/data/collect'), {"
+pages/LoRAManagement.js,82,POST,/lora/data/collect,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/lora/data/collect'), {"
+pages/LoRAManagement.js,82,unknown,/lora/data/collect,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/lora/data/collect'), {"
+pages/LoRAManagement.js,105,POST,/lora/data,{getApiUrl('/lora/data')},unknown,unknown,False,axios_call,await axios.post(`${getApiUrl('/lora/data')}/${dataId}/approve`);
+pages/LoRAManagement.js,105,POST,/lora/data,{getApiUrl('/lora/data')},unknown,unknown,False,http_method,await axios.post(`${getApiUrl('/lora/data')}/${dataId}/approve`);
+pages/LoRAManagement.js,105,unknown,/lora/data,unknown,unknown,unknown,False,getApiUrl,await axios.post(`${getApiUrl('/lora/data')}/${dataId}/approve`);
+pages/LoRAManagement.js,115,POST,/lora/data,{getApiUrl('/lora/data')},unknown,unknown,False,axios_call,"await axios.post(`${getApiUrl('/lora/data')}/${dataId}/reject`, {"
+pages/LoRAManagement.js,115,POST,/lora/data,{getApiUrl('/lora/data')},unknown,unknown,False,http_method,"await axios.post(`${getApiUrl('/lora/data')}/${dataId}/reject`, {"
+pages/LoRAManagement.js,115,unknown,/lora/data,unknown,unknown,unknown,False,getApiUrl,"await axios.post(`${getApiUrl('/lora/data')}/${dataId}/reject`, {"
+pages/LoRAManagement.js,128,POST,/lora/data/batch-approve,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/lora/data/batch-approve'), {"
+pages/LoRAManagement.js,128,POST,/lora/data/batch-approve,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/lora/data/batch-approve'), {"
+pages/LoRAManagement.js,128,unknown,/lora/data/batch-approve,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/lora/data/batch-approve'), {"
+pages/LoRAManagement.js,151,POST,/lora/training/start,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/lora/training/start'), {"
+pages/LoRAManagement.js,151,POST,/lora/training/start,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/lora/training/start'), {"
+pages/LoRAManagement.js,151,unknown,/lora/training/start,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/lora/training/start'), {"
+pages/AdminLogin.js,25,unknown,http://localhost:8000/api/v1/auth/admin-login,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('http://localhost:8000/api/v1/auth/admin-login', {"
+pages/AdminDashboard.js,39,unknown,/api/v1/admin/dashboard,unknown,unknown,unknown,False,fetch_call,"const statsResponse = await fetch('/api/v1/admin/dashboard', { headers });"
+pages/AdminDashboard.js,46,unknown,/api/v1/monitoring/health,unknown,unknown,unknown,False,fetch_call,"const healthResponse = await fetch('/api/v1/monitoring/health', { headers });"
+pages/AdminDashboard.js,53,unknown,/api/v1/admin/users?limit=10,unknown,unknown,unknown,False,fetch_call,"const usersResponse = await fetch('/api/v1/admin/users?limit=10', { headers });"
+pages/AdminDashboard.js,60,unknown,/api/v1/admin/audit-logs?limit=20,unknown,unknown,unknown,False,fetch_call,"const auditResponse = await fetch('/api/v1/admin/audit-logs?limit=20', { headers });"
+pages/AdminDashboard.js,67,unknown,/api/v1/admin/security-events?limit=10,unknown,unknown,unknown,False,fetch_call,"const securityResponse = await fetch('/api/v1/admin/security-events?limit=10', { headers });"
+pages/AdminDashboard.js,83,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(`/api/v1/admin/users/${userId}/toggle-status`, {"
+pages/Admin.js,40,GET,/admin/dashboard,unknown,unknown,unknown,False,axios_call,const response = await axios.get(getApiUrl('/admin/dashboard'));
+pages/Admin.js,40,GET,/admin/dashboard,unknown,unknown,unknown,False,http_method,const response = await axios.get(getApiUrl('/admin/dashboard'));
+pages/Admin.js,40,unknown,/admin/dashboard,unknown,unknown,unknown,False,getApiUrl,const response = await axios.get(getApiUrl('/admin/dashboard'));
+pages/Chat.js,158,POST,/chat/voice-message,unknown,unknown,unknown,False,axios_call,"const response = await axios.post(getApiUrl('/chat/voice-message'), formData, {"
+pages/Chat.js,158,POST,/chat/voice-message,unknown,unknown,unknown,False,http_method,"const response = await axios.post(getApiUrl('/chat/voice-message'), formData, {"
+pages/Chat.js,158,unknown,/chat/voice-message,unknown,unknown,unknown,False,getApiUrl,"const response = await axios.post(getApiUrl('/chat/voice-message'), formData, {"
+pages/Chat.js,206,POST,unknown,unknown,unknown,unknown,False,axios_call,const response = await axios.post(
+pages/Chat.js,206,POST,unknown,unknown,unknown,unknown,False,http_method,const response = await axios.post(
+pages/Chat.js,207,unknown,/chat/sessions,unknown,unknown,unknown,False,getApiUrl,"getApiUrl('/chat/sessions'),"
+pages/Chat.js,231,GET,unknown,unknown,unknown,unknown,False,axios_call,const response = await axios.get(getApiUrl(`/chat/sessions/${selectedSessionId}/messages`));
+pages/Chat.js,231,GET,unknown,unknown,unknown,unknown,False,http_method,const response = await axios.get(getApiUrl(`/chat/sessions/${selectedSessionId}/messages`));
+pages/Chat.js,306,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(getApiUrl(endpoint), {"
+pages/RoleManagement.js,46,unknown,/api/v1/admin/roles/,unknown,unknown,unknown,False,fetch_call,"fetch('/api/v1/admin/roles/', {"
+pages/RoleManagement.js,49,unknown,/api/v1/admin/roles/permissions/,unknown,unknown,unknown,False,fetch_call,"fetch('/api/v1/admin/roles/permissions/', {"
+pages/RoleManagement.js,52,unknown,/api/v1/admin/users?limit=100,unknown,unknown,unknown,False,fetch_call,"fetch('/api/v1/admin/users?limit=100', {"
+pages/RoleManagement.js,83,unknown,/api/v1/admin/roles/,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('/api/v1/admin/roles/', {"
+pages/RoleManagement.js,108,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(`/api/v1/admin/roles/users/${roleAssignment.user_id}/roles/`, {"
+pages/RoleManagement.js,137,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(`/api/v1/admin/roles/users/${userId}/roles/${roleId}`, {"
+pages/RoleManagement.js,159,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(`/api/v1/admin/roles/${roleId}`, {"
+pages/ImprovedAdmin.js,58,unknown,http://localhost:8000/api/v1/admin/dashboard,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('http://localhost:8000/api/v1/admin/dashboard', {"
+pages/ImprovedAdmin.js,70,unknown,http://localhost:8000/api/v1/system/status,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('http://localhost:8000/api/v1/system/status', {"
+pages/ImprovedAdmin.js,82,unknown,http://localhost:8000/api/v1/lora/status,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('http://localhost:8000/api/v1/lora/status', {"
+pages/ImprovedAdmin.js,94,unknown,http://localhost:8000/api/v1/rag/status,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('http://localhost:8000/api/v1/rag/status', {"
+pages/ImprovedAdmin.js,106,unknown,http://localhost:8000/api/v1/rag/initialize,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('http://localhost:8000/api/v1/rag/initialize', {"
+pages/LoRATrainingPage.jsx,39,unknown,/api/lora/data/stats?days=7,unknown,unknown,unknown,False,fetch_call,const response = await fetch('/api/lora/data/stats?days=7');
+pages/LoRATrainingPage.jsx,54,unknown,unknown,unknown,unknown,unknown,False,fetch_call,const response = await fetch(`/api/lora/data?${params}`);
+pages/LoRATrainingPage.jsx,67,unknown,/api/lora/data/collect,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('/api/lora/data/collect', {"
+pages/LoRATrainingPage.jsx,95,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(`/api/lora/data/${dataId}/approve`, {"
+pages/LoRATrainingPage.jsx,110,unknown,unknown,unknown,unknown,unknown,False,fetch_call,"const response = await fetch(`/api/lora/data/${dataId}/reject`, {"
+pages/LoRATrainingPage.jsx,129,unknown,/api/lora/data/batch-approve,unknown,unknown,unknown,False,fetch_call,"const response = await fetch('/api/lora/data/batch-approve', {"

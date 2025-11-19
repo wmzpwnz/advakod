@@ -1,0 +1,107 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'ai-lawyer-prod'
+    replica: 'prometheus-1'
+
+rule_files:
+  - "prometheus_alerts.yml"
+  - "admin_panel_alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # AI-Lawyer Backend
+  - job_name: 'ai-lawyer'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    params:
+      format: ['prometheus']
+    
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    
+  # Node Exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+    
+  # Redis metrics (if Redis exporter is running)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['localhost:9121']
+    
+  # Additional AI-Lawyer components
+  - job_name: 'ai-lawyer-websocket'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/ws/metrics'
+    scrape_interval: 30s
+    
+  # ChromaDB metrics (if available)
+  - job_name: 'chromadb'
+    static_configs:
+      - targets: ['localhost:8001']
+    metrics_path: '/api/v1/metrics'
+    scrape_interval: 15s
+    
+  # Custom health checks
+  - job_name: 'ai-lawyer-health'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/ready'
+    scrape_interval: 5s
+    scrape_timeout: 3s
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus/data
+    retention.time: 30d
+    retention.size: 50GB
+    
+# Remote write (optional, for long-term storage)
+# remote_write:
+#   - url: "https://prometheus-remote-write.example.com/api/v1/write"
+#     basic_auth:
+#       username: "your-username"
+#       password: "your-password"
+
+# Recording rules for performance optimization
+recording_rules:
+  - name: ai_lawyer_aggregations
+    rules:
+      # HTTP request rates
+      - record: ai_lawyer:http_request_rate_5m
+        expr: rate(ai_lawyer_http_requests_total[5m])
+        
+      - record: ai_lawyer:http_error_rate_5m
+        expr: rate(ai_lawyer_http_requests_total{status_code=~"5.."}[5m]) / rate(ai_lawyer_http_requests_total[5m])
+        
+      # AI inference metrics
+      - record: ai_lawyer:ai_inference_rate_5m
+        expr: rate(ai_lawyer_ai_inference_requests_total[5m])
+        
+      - record: ai_lawyer:ai_inference_error_rate_5m
+        expr: rate(ai_lawyer_ai_inference_requests_total{status="error"}[5m]) / rate(ai_lawyer_ai_inference_requests_total[5m])
+        
+      # Cache performance
+      - record: ai_lawyer:cache_hit_rate_5m
+        expr: rate(ai_lawyer_cache_hits_total[5m]) / (rate(ai_lawyer_cache_hits_total[5m]) + rate(ai_lawyer_cache_misses_total[5m]))
+        
+      # Business metrics aggregations
+      - record: ai_lawyer:chat_sessions_hourly
+        expr: rate(ai_lawyer_chat_sessions_total[1h]) * 3600
+        
+      - record: ai_lawyer:legal_queries_hourly
+        expr: rate(ai_lawyer_legal_queries_total[1h]) * 3600

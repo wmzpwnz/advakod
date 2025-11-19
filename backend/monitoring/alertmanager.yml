@@ -1,0 +1,97 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@ai-lawyer.local'
+  smtp_auth_username: 'alerts@ai-lawyer.local'
+  smtp_auth_password: 'your-smtp-password'
+
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+  routes:
+    # Critical alerts go to both email and webhook
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 15m
+    
+    # Warning alerts go to email only
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      repeat_interval: 30m
+    
+    # Info alerts go to webhook only
+    - match:
+        severity: info
+      receiver: 'info-alerts'
+      repeat_interval: 4h
+
+receivers:
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'devops@ai-lawyer.local'
+        subject: '[AI-Lawyer] Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+          {{ end }}
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'devops@ai-lawyer.local,management@ai-lawyer.local'
+        subject: '[CRITICAL] AI-Lawyer Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          🚨 CRITICAL ALERT 🚨
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.job }}
+          Time: {{ .StartsAt }}
+          
+          Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+          {{ end }}
+          
+          Please investigate immediately!
+    webhook_configs:
+      - url: 'http://localhost:8000/api/v1/alerts/webhook'
+        send_resolved: true
+        http_config:
+          bearer_token: 'your-webhook-token'
+
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'devops@ai-lawyer.local'
+        subject: '[WARNING] AI-Lawyer Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          ⚠️ Warning Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.job }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+
+  - name: 'info-alerts'
+    webhook_configs:
+      - url: 'http://localhost:8000/api/v1/alerts/webhook'
+        send_resolved: true
+        http_config:
+          bearer_token: 'your-webhook-token'
+
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']

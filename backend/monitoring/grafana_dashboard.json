@@ -1,0 +1,375 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI-Lawyer Performance Dashboard",
+    "tags": ["ai-lawyer", "performance", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Request Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_http_requests_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 100
+                },
+                {
+                  "color": "red",
+                  "value": 500
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Response Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ai_lawyer_http_request_duration_seconds{quantile=\"0.95\"}",
+            "legendFormat": "95th percentile"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "AI Inference Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_ai_inference_requests_total[5m])",
+            "legendFormat": "Inferences/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 4,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_cache_hits_total[5m]) / (rate(ai_lawyer_cache_hits_total[5m]) + rate(ai_lawyer_cache_misses_total[5m])) * 100",
+            "legendFormat": "Hit Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "green",
+                  "value": 90
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        }
+      },
+      {
+        "id": 5,
+        "title": "HTTP Requests by Status Code",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_http_requests_total[5m])",
+            "legendFormat": "{{status_code}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "fillOpacity": 10,
+              "spanNulls": false
+            },
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "AI Model Response Times",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "ai_lawyer_ai_inference_duration_seconds{quantile=\"0.95\"}",
+            "legendFormat": "{{model_type}} - 95th percentile"
+          },
+          {
+            "expr": "ai_lawyer_ai_inference_duration_seconds{quantile=\"0.50\"}",
+            "legendFormat": "{{model_type}} - median"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "fillOpacity": 10
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 7,
+        "title": "Rate Limiting Status",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_rate_limit_blocked_total[5m])",
+            "legendFormat": "Blocked requests/sec"
+          },
+          {
+            "expr": "rate(ai_lawyer_rate_limit_allowed_total[5m])",
+            "legendFormat": "Allowed requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 2
+            },
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 8,
+        "title": "System Resources",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "ai_lawyer_system_cpu_usage_percent",
+            "legendFormat": "CPU Usage %"
+          },
+          {
+            "expr": "ai_lawyer_system_memory_usage_percent",
+            "legendFormat": "Memory Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 2
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 9,
+        "title": "Vector Store Operations",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_vector_store_operations_total{operation=\"search\"}[5m])",
+            "legendFormat": "Searches/sec"
+          },
+          {
+            "expr": "rate(ai_lawyer_vector_store_operations_total{operation=\"insert\"}[5m])",
+            "legendFormat": "Inserts/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 2
+            },
+            "unit": "ops"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 10,
+        "title": "Business Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(ai_lawyer_chat_sessions_total[5m])",
+            "legendFormat": "New chat sessions/sec"
+          },
+          {
+            "expr": "rate(ai_lawyer_legal_queries_total[5m])",
+            "legendFormat": "Legal queries/sec"
+          },
+          {
+            "expr": "rate(ai_lawyer_document_analysis_total[5m])",
+            "legendFormat": "Document analyses/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 2
+            },
+            "unit": "ops"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      }
+    ]
+  }
+}

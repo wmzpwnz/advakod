@@ -1,0 +1,60 @@
+{
+  "name": "ai-lawyer-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@heroicons/react": "^2.0.18",
+    "axios": "^1.6.2",
+    "chart.js": "^4.4.0",
+    "framer-motion": "^12.23.22",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-grid-layout": "^1.4.4",
+    "react-hot-toast": "^2.4.1",
+    "react-intersection-observer": "^9.16.0",
+    "react-resizable": "^3.0.5",
+    "react-router-dom": "^6.8.1",
+    "react-scripts": "5.0.1",
+    "react-spring": "^10.0.3",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6"
+  },
+  "scripts": {
+    "start": "PORT=3000 react-scripts start",
+    "build": "react-scripts build",
+    "build:prod": "ESLINT_CONFIG_FILE=.eslintrc.production.js react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint src/",
+    "lint:prod": "eslint -c .eslintrc.production.js src/",
+    "lint:fix": "eslint -c .eslintrc.production.js src/ --fix"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

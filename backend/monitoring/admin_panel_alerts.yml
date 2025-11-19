@@ -1,0 +1,333 @@
+groups:
+  - name: admin_panel_critical
+    rules:
+      # Critical service availability alerts
+      - alert: AdminPanelDown
+        expr: up{job="ai-lawyer"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: admin_panel
+          team: devops
+        annotations:
+          summary: "Admin Panel is down"
+          description: "Admin Panel has been down for more than 1 minute"
+          runbook_url: "https://docs.advakod.ru/runbooks/admin-panel-down"
+
+      - alert: AdminPanelHighErrorRate
+        expr: rate(admin_panel_http_requests_total{status_code=~"5.."}[5m]) / rate(admin_panel_http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "High error rate in Admin Panel"
+          description: "Admin Panel error rate is {{ $value | humanizePercentage }} for module {{ $labels.module }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/high-error-rate"
+
+      - alert: AdminPanelVerySlowResponse
+        expr: histogram_quantile(0.95, rate(admin_panel_http_request_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: critical
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "Very slow response times in Admin Panel"
+          description: "95th percentile response time is {{ $value }}s for module {{ $labels.module }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-response"
+
+  - name: admin_panel_warning
+    rules:
+      # Performance warning alerts
+      - alert: AdminPanelSlowResponse
+        expr: histogram_quantile(0.95, rate(admin_panel_http_request_duration_seconds_bucket[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "Slow response times in Admin Panel"
+          description: "95th percentile response time is {{ $value }}s for module {{ $labels.module }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-response"
+
+      - alert: AdminPanelHighMemoryUsage
+        expr: (process_resident_memory_bytes / process_virtual_memory_max_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: devops
+        annotations:
+          summary: "High memory usage in Admin Panel"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/high-memory"
+
+      - alert: AdminPanelLowCacheHitRate
+        expr: rate(admin_panel_cache_hits_total[5m]) / (rate(admin_panel_cache_hits_total[5m]) + rate(admin_panel_cache_misses_total[5m])) < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "Low cache hit rate in Admin Panel"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for module {{ $labels.module }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/low-cache-hit-rate"
+
+  - name: admin_panel_rbac
+    rules:
+      # RBAC security alerts
+      - alert: AdminPanelSuspiciousRoleChanges
+        expr: rate(admin_panel_rbac_role_changes_total[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: security
+        annotations:
+          summary: "Suspicious role changes in Admin Panel"
+          description: "High rate of role changes: {{ $value }} changes/sec by {{ $labels.changed_by_role }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/suspicious-role-changes"
+
+      - alert: AdminPanelFailedPermissionChecks
+        expr: rate(admin_panel_rbac_permission_checks_total{result="false"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: security
+        annotations:
+          summary: "High rate of failed permission checks"
+          description: "Failed permission checks: {{ $value }} failures/sec for role {{ $labels.user_role }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/failed-permission-checks"
+
+  - name: admin_panel_moderation
+    rules:
+      # Moderation system alerts
+      - alert: AdminPanelModerationQueueBacklog
+        expr: sum(admin_panel_moderation_queue_size) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: moderation
+        annotations:
+          summary: "Large moderation queue backlog"
+          description: "Moderation queue has {{ $value }} items pending"
+          runbook_url: "https://docs.advakod.ru/runbooks/moderation-backlog"
+
+      - alert: AdminPanelSlowModerationResponse
+        expr: histogram_quantile(0.95, rate(admin_panel_moderation_response_time_seconds_bucket[5m])) > 3600
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: moderation
+        annotations:
+          summary: "Slow moderation response times"
+          description: "95th percentile moderation response time is {{ $value | humanizeDuration }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-moderation"
+
+  - name: admin_panel_notifications
+    rules:
+      # Notification system alerts
+      - alert: AdminPanelNotificationDeliveryFailure
+        expr: rate(admin_panel_notifications_sent_total{status="failed"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "High notification delivery failure rate"
+          description: "Notification delivery failure rate: {{ $value }} failures/sec for channel {{ $labels.channel }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/notification-failures"
+
+      - alert: AdminPanelNotificationQueueBacklog
+        expr: sum(admin_panel_notifications_queue_size) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "Large notification queue backlog"
+          description: "Notification queue has {{ $value }} items pending"
+          runbook_url: "https://docs.advakod.ru/runbooks/notification-backlog"
+
+      - alert: AdminPanelSlowNotificationDelivery
+        expr: histogram_quantile(0.95, rate(admin_panel_notifications_delivery_seconds_bucket[5m])) > 30
+        for: 3m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "Slow notification delivery"
+          description: "95th percentile notification delivery time is {{ $value }}s for channel {{ $labels.channel }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-notifications"
+
+  - name: admin_panel_analytics
+    rules:
+      # Analytics performance alerts
+      - alert: AdminPanelSlowAnalyticsQueries
+        expr: histogram_quantile(0.95, rate(admin_panel_analytics_query_duration_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: analytics
+        annotations:
+          summary: "Slow analytics queries"
+          description: "95th percentile analytics query time is {{ $value }}s for query type {{ $labels.query_type }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-analytics"
+
+      - alert: AdminPanelAnalyticsQueryFailures
+        expr: rate(admin_panel_analytics_queries_total{success="false"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: analytics
+        annotations:
+          summary: "High analytics query failure rate"
+          description: "Analytics query failure rate: {{ $value }} failures/sec for query type {{ $labels.query_type }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/analytics-failures"
+
+  - name: admin_panel_backup
+    rules:
+      # Backup system alerts
+      - alert: AdminPanelBackupFailure
+        expr: rate(admin_panel_backup_operations_total{status="failed"}[1h]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: admin_panel
+          team: devops
+        annotations:
+          summary: "Backup operation failed"
+          description: "Backup operation failed for type {{ $labels.backup_type }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/backup-failure"
+
+      - alert: AdminPanelBackupTooSlow
+        expr: histogram_quantile(0.95, rate(admin_panel_backup_duration_seconds_bucket[1h])) > 7200
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: devops
+        annotations:
+          summary: "Backup operation taking too long"
+          description: "95th percentile backup duration is {{ $value | humanizeDuration }} for type {{ $labels.backup_type }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-backup"
+
+      - alert: AdminPanelNoRecentBackup
+        expr: time() - admin_panel_backup_operations_total > 86400
+        for: 1m
+        labels:
+          severity: critical
+          service: admin_panel
+          team: devops
+        annotations:
+          summary: "No recent backup found"
+          description: "No backup operation in the last 24 hours for type {{ $labels.backup_type }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/no-recent-backup"
+
+  - name: admin_panel_business
+    rules:
+      # Business metrics alerts
+      - alert: AdminPanelLowActivity
+        expr: rate(admin_panel_user_sessions_total[1h]) < 0.1
+        for: 30m
+        labels:
+          severity: info
+          service: admin_panel
+          team: product
+        annotations:
+          summary: "Low admin panel activity"
+          description: "Admin panel session rate is {{ $value }} sessions/hour"
+          runbook_url: "https://docs.advakod.ru/runbooks/low-activity"
+
+      - alert: AdminPanelNoActiveUsers
+        expr: sum(admin_panel_active_users) == 0
+        for: 30m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: product
+        annotations:
+          summary: "No active admin users"
+          description: "No active admin users for 30 minutes"
+          runbook_url: "https://docs.advakod.ru/runbooks/no-active-users"
+
+  - name: admin_panel_websocket
+    rules:
+      # WebSocket connection alerts
+      - alert: AdminPanelWebSocketConnectionDrop
+        expr: rate(admin_panel_websocket_connections[5m]) < -10
+        for: 2m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "WebSocket connections dropping rapidly"
+          description: "WebSocket connections dropping at {{ $value }} connections/sec"
+          runbook_url: "https://docs.advakod.ru/runbooks/websocket-drops"
+
+      - alert: AdminPanelTooManyWebSocketConnections
+        expr: sum(admin_panel_websocket_connections) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: backend
+        annotations:
+          summary: "Too many WebSocket connections"
+          description: "{{ $value }} active WebSocket connections"
+          runbook_url: "https://docs.advakod.ru/runbooks/too-many-websockets"
+
+  - name: admin_panel_feature_adoption
+    rules:
+      # Feature adoption alerts
+      - alert: AdminPanelLowFeatureAdoption
+        expr: admin_panel_feature_adoption_rate < 0.1
+        for: 24h
+        labels:
+          severity: info
+          service: admin_panel
+          team: product
+        annotations:
+          summary: "Low feature adoption rate"
+          description: "Feature {{ $labels.feature }} in module {{ $labels.module }} has adoption rate of {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/low-feature-adoption"
+
+  - name: admin_panel_performance_optimization
+    rules:
+      # Performance optimization alerts
+      - alert: AdminPanelSlowCodeSplittingLoads
+        expr: rate(admin_panel_code_splitting_loads_total{load_time_bucket="slow"}[5m]) / rate(admin_panel_code_splitting_loads_total[5m]) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+          service: admin_panel
+          team: frontend
+        annotations:
+          summary: "High rate of slow code splitting loads"
+          description: "{{ $value | humanizePercentage }} of code splitting loads are slow for chunk {{ $labels.chunk_name }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/slow-code-splitting"
+
+      - alert: AdminPanelExcessiveLazyLoading
+        expr: rate(admin_panel_lazy_loading_triggers_total[5m]) > 10
+        for: 3m
+        labels:
+          severity: info
+          service: admin_panel
+          team: frontend
+        annotations:
+          summary: "High rate of lazy loading triggers"
+          description: "Lazy loading triggered {{ $value }} times/sec for component {{ $labels.component_type }}"
+          runbook_url: "https://docs.advakod.ru/runbooks/excessive-lazy-loading"

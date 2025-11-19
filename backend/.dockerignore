@@ -1,0 +1,115 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Test files
+tests/
+test_*.py
+*_test.py
+pytest.ini
+.pytest_cache/
+
+# Scripts (not used in runtime)
+scripts/
+*.sh
+
+# Documentation
+docs/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Monitoring (separate service)
+monitoring/
+
+# Data directories (mounted as volumes)
+data/
+backend/data/
+backend/backups/
+chroma_db/
+
+# Media and uploads (mounted as volumes)
+media/
+uploads/
+static/
+
+# Alembic versions (migrations run separately)
+alembic/versions/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*_backup.py
+main_backup.py
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Environment files (should be in .env, not in image)
+.env.local
+.env.*.local
+
+# Coverage reports
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+

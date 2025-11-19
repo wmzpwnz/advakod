@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Офлайн режим - ИИ-Юрист</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .retry-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .retry-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .online {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .offline {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-indicator offline" id="statusIndicator">
+        <span id="statusText">Офлайн</span>
+    </div>
+    
+    <div class="offline-container">
+        <div class="offline-icon">
+            📱
+        </div>
+        
+        <h1>Офлайн режим</h1>
+        
+        <p>
+            Похоже, у вас нет подключения к интернету. 
+            Не волнуйтесь, некоторые функции все еще доступны!
+        </p>
+        
+        <a href="/" class="retry-button" onclick="retryConnection()">
+            Попробовать снова
+        </a>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">💾</div>
+                <span>Кэшированные данные доступны</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📝</div>
+                <span>Можно просматривать историю чатов</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <span>Быстрая загрузка из кэша</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Проверка статуса подключения
+        function updateConnectionStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (navigator.onLine) {
+                statusIndicator.className = 'status-indicator online';
+                statusText.textContent = 'Онлайн';
+                
+                // Автоматически перенаправляем на главную страницу
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                statusIndicator.className = 'status-indicator offline pulse';
+                statusText.textContent = 'Офлайн';
+            }
+        }
+        
+        // Попытка переподключения
+        function retryConnection() {
+            const retryButton = document.querySelector('.retry-button');
+            retryButton.textContent = 'Проверяем...';
+            retryButton.style.opacity = '0.7';
+            
+            // Проверяем подключение
+            fetch('/api/v1/health', { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+            .then(() => {
+                window.location.href = '/';
+            })
+            .catch(() => {
+                retryButton.textContent = 'Попробовать снова';
+                retryButton.style.opacity = '1';
+                
+                // Показываем уведомление
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('ИИ-Юрист', {
+                        body: 'Подключение к интернету все еще недоступно',
+                        icon: '/logo192.png'
+                    });
+                }
+            });
+        }
+        
+        // Слушаем изменения статуса подключения
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // Проверяем статус при загрузке
+        updateConnectionStatus();
+        
+        // Периодическая проверка подключения
+        setInterval(() => {
+            if (!navigator.onLine) {
+                fetch('/api/v1/health', { 
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                })
+                .then(() => {
+                    updateConnectionStatus();
+                })
+                .catch(() => {
+                    // Все еще офлайн
+                });
+            }
+        }, 10000); // Проверяем каждые 10 секунд
+        
+        // Регистрируем Service Worker если еще не зарегистрирован
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+</body>
+</html>
