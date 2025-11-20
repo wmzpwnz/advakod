@@ -97,6 +97,7 @@ services:
           cpus: '6'
     environment:
       - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@host.docker.internal:5432/advakod_db
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - QDRANT_URL=http://advakod_qdrant:6333
@@ -161,6 +162,7 @@ services:
     command: celery -A app.core.celery_app worker --loglevel=info --queues=default,ai_processing,email,file_processing,analytics,high_priority
     environment:
       - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@host.docker.internal:5432/advakod_db
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - CELERY_BROKER_URL=redis://advakod_redis:6379/0
@@ -197,6 +199,7 @@ services:
     command: sh -c "mkdir -p /tmp && celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule"
     environment:
       - ENVIRONMENT=production
+      - DEBUG=false
       - DATABASE_URL=postgresql://advakod:${POSTGRES_PASSWORD}@host.docker.internal:5432/advakod_db
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - CELERY_BROKER_URL=redis://advakod_redis:6379/0

@@ -380,6 +380,50 @@ async def send_message(
                 processing_time=processing_time
             )
         
+        # Проверка на вопросы о создателе/модели
+        creator_questions = {
+            "кто тебя создал", "кто создал", "кто твой создатель", "кто разработал",
+            "что ты такое", "кто ты", "расскажи о себе", "что ты за модель",
+            "кто тебя сделал", "кто твой разработчик", "кто тебя придумал",
+            "что такое адвакодекс", "что такое advacodex", "расскажи про адвакодекс",
+            "кто создал адвакодекс", "кто создал advacodex"
+        }
+        
+        if any(keyword in message_text_lower for keyword in creator_questions):
+            response_text = (
+                "Меня создала команда Advacodex (Адвакодекс) под руководством Азиза Багбекова. "
+                "Я - специализированный ИИ-юрист, разработанный для помощи в вопросах российского законодательства. "
+                "Моя задача - предоставлять профессиональные консультации со ссылками на нормы права и помогать пользователям "
+                "разбираться в различных аспектах российского законодательства. Advacodex - это платформа для юридических консультаций "
+                "с использованием искусственного интеллекта."
+            )
+            actual_cost = 5
+            sources = [{"title": "Система", "text": "Информация о создателе без вызова модели"}]
+            processing_time = time.time() - start_time
+            assistant_message = ChatMessage(
+                session_id=session.id,
+                role="assistant",
+                content=response_text,
+                message_metadata={
+                    "sources": sources,
+                    "processing_time": processing_time,
+                    "context_used": False,
+                    "tokens_cost": actual_cost
+                }
+            )
+            db.add(assistant_message)
+            db.commit()
+            db.refresh(assistant_message)
+            # Не отправляем через WebSocket, так как ответ уже возвращается через HTTP
+            # Фронтенд получит ответ через HTTP и отобразит его
+            return ChatResponse(
+                message=response_text,
+                session_id=session.id,
+                message_id=assistant_message.id,
+                sources=sources,
+                processing_time=processing_time
+            )
+        
         # Получаем историю чата для контекста (подготовка параллельно)
         chat_history = ""
         context_used = False
@@ -810,6 +854,50 @@ async def send_message_stream(
     db.add(user_message)
     db.commit()
     
+    # Проверка на вопросы о создателе/модели (для streaming)
+    message_text_lower = (chat_request.message or "").strip().lower()
+    creator_questions = {
+        "кто тебя создал", "кто создал", "кто твой создатель", "кто разработал",
+        "что ты такое", "кто ты", "расскажи о себе", "что ты за модель",
+        "кто тебя сделал", "кто твой разработчик", "кто тебя придумал",
+        "что такое адвакодекс", "что такое advacodex", "расскажи про адвакодекс",
+        "кто создал адвакодекс", "кто создал advacodex"
+    }
+    
+    if any(keyword in message_text_lower for keyword in creator_questions):
+        response_text = (
+            "Меня создала команда Advacodex (Адвакодекс) под руководством Азиза Багбекова. "
+            "Я - специализированный ИИ-юрист, разработанный для помощи в вопросах российского законодательства. "
+            "Моя задача - предоставлять профессиональные консультации со ссылками на нормы права и помогать пользователям "
+            "разбираться в различных аспектах российского законодательства. Advacodex - это платформа для юридических консультаций "
+            "с использованием искусственного интеллекта."
+        )
+        actual_cost = 5
+        sources = [{"title": "Система", "text": "Информация о создателе без вызова модели"}]
+        processing_time = time.time() - start_time
+        assistant_message = ChatMessage(
+            session_id=session.id,
+            role="assistant",
+            content=response_text,
+            message_metadata={
+                "sources": sources,
+                "processing_time": processing_time,
+                "context_used": False,
+                "tokens_cost": actual_cost
+            }
+        )
+        db.add(assistant_message)
+        db.commit()
+        db.refresh(assistant_message)
+        # Не отправляем через WebSocket для streaming, так как ответ уже отправляется через SSE
+        # Для streaming возвращаем ответ как один чанк
+        async def quick_response_stream():
+            yield f"data: {json.dumps({'type': 'start', 'session_id': session.id, 'message_id': assistant_message.id})}\n\n"
+            yield f"data: {json.dumps({'type': 'chunk', 'content': response_text})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'session_id': session.id, 'message_id': assistant_message.id})}\n\n"
+        
+        return StreamingResponse(quick_response_stream(), media_type="text/event-stream")
+    
     async def generate_stream():
         try:
             # Определяем context_key внутри функции для доступа
@@ -884,6 +972,7 @@ async def send_message_stream(
                         )
                     )
                 logger.info(f"Вызываем unified_llm_service.generate_response (stream, режим: {chat_mode}) с промптом {'С историей' if chat_history else 'БЕЗ истории'}: {prompt[:100]}...")
+                chunk_sent_count = 0
                 async for chunk in unified_llm_service.generate_response(
                     prompt=prompt,
                     max_tokens=config["max_tokens"],
@@ -891,9 +980,22 @@ async def send_message_stream(
                     top_p=config["top_p"],
                     stream=True
                 ):
+                    chunk_sent_count += 1
+                    # Обрабатываем маркер двухфазной генерации отдельно
+                    if chunk == "__QUICK_RESPONSE_READY__":
+                        # Отправляем как отдельное событие SSE (не часть текста)
+                        yield f"data: {json.dumps({'type': 'quick_response_ready'})}\n\n"
+                        logger.info(f"✅ Отправлен маркер quick_response_ready клиенту")
+                        continue
+                    
+                    # Обычные текстовые чанки - сохраняем и отправляем
                     full_response += chunk
-                    yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
-                logger.info(f"Unified LLM сервис завершил стриминг, общая длина ответа: {len(full_response)} символов")
+                    chunk_data = f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
+                    yield chunk_data
+                    # Логируем первые 10 чанков и каждые 50 для диагностики
+                    if chunk_sent_count <= 10 or chunk_sent_count % 50 == 0:
+                        logger.info(f"📤 Отправлен чанк {chunk_sent_count} клиенту: {chunk[:50]}... (длина: {len(chunk)})")
+                logger.info(f"✅ Unified LLM сервис завершил стриминг: отправлено {chunk_sent_count} чанков, общая длина ответа: {len(full_response)} символов")
             except Exception as e:
                 # Простой fallback при ошибке
                 logger.info(f"Ошибка в streaming: {e}, используем fallback")

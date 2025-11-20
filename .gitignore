@@ -35,3 +35,8 @@ logs/
 *.safetensors
 *.gguf
 *.onnx
+
+# Большие файлы данных
+backend/data/simple_rag_data.json
+backups/migration_backup_20251118_014214/postgres_volume_backup.tar.gz
+unified_codexes/validation/reports/validation_report_2025110*.json
