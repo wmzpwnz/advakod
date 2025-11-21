@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-11-21T06:18:47.318030",
+  "timestamp": "2025-11-21T06:50:54.603183",
   "is_running": true,
   "current_task": "Интеграция 0 файлов в RAG",
-  "downloaded_files": 2394,
+  "downloaded_files": 2399,
   "processed_files": 31,
   "errors": 5,
   "total_codexes": 4
