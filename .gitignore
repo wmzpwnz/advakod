@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models (too large)
+models/*.gguf
+models/*.bin
+models/*.safetensors
+
+# Data
+data/chroma_db/
+data/downloaded_codexes/
+uploads/
+media/
+
+# Cache
+.cache/
+*.cache
+
+# Docker
+.dockerignore
+
+# Backups
+backups/
+*.backup
+*_backup_*
+
+# Models (too large for GitHub)
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth

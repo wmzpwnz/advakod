@@ -1,0 +1,424 @@
+{
+  "timestamp": "2025-11-10T18:13:25.138653",
+  "summary": {
+    "total_files": 29,
+    "valid_files": 0,
+    "invalid_files": 29,
+    "validation_rate": 0.0
+  },
+  "document_types": {
+    "general_legal": {
+      "count": 5,
+      "valid": 0,
+      "avg_score": 0.0
+    },
+    "federal_law": {
+      "count": 24,
+      "valid": 0,
+      "avg_score": 6.870388061970782
+    }
+  },
+  "detailed_results": [
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/289-11.pdf",
+      "file_name": "289-11.pdf",
+      "file_size": 121640,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 53941,
+      "validation_timestamp": "2025-11-10T18:12:28.809862",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/0001201905010039.pdf",
+      "file_name": "0001201905010039.pdf",
+      "file_size": 521624,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 260099,
+      "validation_timestamp": "2025-11-10T18:12:29.348200",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/198.pdf",
+      "file_name": "198.pdf",
+      "file_size": 109298,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 54508,
+      "validation_timestamp": "2025-11-10T18:12:29.461203",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/0001201410140002.pdf",
+      "file_name": "0001201410140002.pdf",
+      "file_size": 204144,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 101284,
+      "validation_timestamp": "2025-11-10T18:12:29.684931",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/0001202203030006.pdf",
+      "file_name": "0001202203030006.pdf",
+      "file_size": 234667,
+      "legal_score": 0,
+      "document_type": "general_legal",
+      "is_valid": false,
+      "text_length": 110784,
+      "validation_timestamp": "2025-11-10T18:12:29.922603",
+      "recommendations": [
+        "Не рекомендуется для RAG системы"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Гражданский_кодекс_РФ_часть_3.txt",
+      "file_name": "Гражданский_кодекс_РФ_часть_3.txt",
+      "file_size": 1338530,
+      "legal_score": 8.743389467660057,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 734277,
+      "validation_timestamp": "2025-11-10T18:12:30.902711",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Гражданский_кодекс_РФ_часть_2.txt",
+      "file_name": "Гражданский_кодекс_РФ_часть_2.txt",
+      "file_size": 1967831,
+      "legal_score": 7.682328065082608,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1090130,
+      "validation_timestamp": "2025-11-10T18:12:32.362777",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Трудовой_кодекс_РФ_HTML.txt",
+      "file_name": "Трудовой_кодекс_РФ_HTML.txt",
+      "file_size": 9959455,
+      "legal_score": 5.388498044198974,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 5491806,
+      "validation_timestamp": "2025-11-10T18:12:39.952619",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Жилищный_кодекс_РФ.txt",
+      "file_name": "Жилищный_кодекс_РФ.txt",
+      "file_size": 2217138,
+      "legal_score": 5.9751359751359745,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1226898,
+      "validation_timestamp": "2025-11-10T18:12:41.564579",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Градостроительный_кодекс_РФ.txt",
+      "file_name": "Градостроительный_кодекс_РФ.txt",
+      "file_size": 3008810,
+      "legal_score": 6.616342820285414,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1662586,
+      "validation_timestamp": "2025-11-10T18:12:43.732574",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Арбитражный_процессуальный_кодекс_РФ.txt",
+      "file_name": "Арбитражный_процессуальный_кодекс_РФ.txt",
+      "file_size": 2220569,
+      "legal_score": 9.07710605562163,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1227479,
+      "validation_timestamp": "2025-11-10T18:12:45.335110",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Кодекс_торгового_мореплавания_РФ.txt",
+      "file_name": "Кодекс_торгового_мореплавания_РФ.txt",
+      "file_size": 1074709,
+      "legal_score": 8.581929076905032,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 592529,
+      "validation_timestamp": "2025-11-10T18:12:46.085539",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Кодекс_административного_судопроизводства_РФ.txt",
+      "file_name": "Кодекс_административного_судопроизводства_РФ.txt",
+      "file_size": 2592781,
+      "legal_score": 7.194964336121911,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1434158,
+      "validation_timestamp": "2025-11-10T18:12:47.950868",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Гражданский_процессуальный_кодекс_РФ.txt",
+      "file_name": "Гражданский_процессуальный_кодекс_РФ.txt",
+      "file_size": 2937583,
+      "legal_score": 7.0325355812812145,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1629385,
+      "validation_timestamp": "2025-11-10T18:12:50.029244",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Водный_кодекс_РФ.txt",
+      "file_name": "Водный_кодекс_РФ.txt",
+      "file_size": 440993,
+      "legal_score": 8.82179579540245,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 248553,
+      "validation_timestamp": "2025-11-10T18:12:50.339699",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Лесной_кодекс_РФ.txt",
+      "file_name": "Лесной_кодекс_РФ.txt",
+      "file_size": 1006818,
+      "legal_score": 9.14079648792725,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 560865,
+      "validation_timestamp": "2025-11-10T18:12:51.068923",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Гражданский_кодекс_РФ_часть_4.txt",
+      "file_name": "Гражданский_кодекс_РФ_часть_4.txt",
+      "file_size": 1339619,
+      "legal_score": 8.069917324520471,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 734725,
+      "validation_timestamp": "2025-11-10T18:12:52.052386",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Воздушный_кодекс_РФ.txt",
+      "file_name": "Воздушный_кодекс_РФ.txt",
+      "file_size": 898549,
+      "legal_score": 7.640746188820541,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 497279,
+      "validation_timestamp": "2025-11-10T18:12:52.678308",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Налоговый_кодекс_РФ_часть_2.txt",
+      "file_name": "Налоговый_кодекс_РФ_часть_2.txt",
+      "file_size": 3713750,
+      "legal_score": 4.7940295990217985,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 2090730,
+      "validation_timestamp": "2025-11-10T18:12:55.399419",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Уголовно_процессуальный_кодекс_РФ.txt",
+      "file_name": "Уголовно_процессуальный_кодекс_РФ.txt",
+      "file_size": 4120188,
+      "legal_score": 7.383961188582541,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 2300263,
+      "validation_timestamp": "2025-11-10T18:12:58.700814",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Налоговый_кодекс_РФ_часть_1.txt",
+      "file_name": "Налоговый_кодекс_РФ_часть_1.txt",
+      "file_size": 3485009,
+      "legal_score": 6.342082074003311,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1934167,
+      "validation_timestamp": "2025-11-10T18:13:01.249317",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Семейный_кодекс_РФ.txt",
+      "file_name": "Семейный_кодекс_РФ.txt",
+      "file_size": 5284826,
+      "legal_score": 6.393732286926982,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 2923045,
+      "validation_timestamp": "2025-11-10T18:13:06.183671",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Уголовный_кодекс_РФ_HTML.txt",
+      "file_name": "Уголовный_кодекс_РФ_HTML.txt",
+      "file_size": 4505612,
+      "legal_score": 6.375723317787717,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 2534029,
+      "validation_timestamp": "2025-11-10T18:13:09.878375",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Земельный_кодекс_РФ.txt",
+      "file_name": "Земельный_кодекс_РФ.txt",
+      "file_size": 2011499,
+      "legal_score": 7.218888824785092,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1118692,
+      "validation_timestamp": "2025-11-10T18:13:11.458866",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Кодекс_внутреннего_водного_транспорта_РФ.txt",
+      "file_name": "Кодекс_внутреннего_водного_транспорта_РФ.txt",
+      "file_size": 2924639,
+      "legal_score": 4.44278258488211,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1599972,
+      "validation_timestamp": "2025-11-10T18:13:13.998939",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Гражданский_кодекс_РФ_часть_1.txt",
+      "file_name": "Гражданский_кодекс_РФ_часть_1.txt",
+      "file_size": 3019829,
+      "legal_score": 6.115796917514717,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1692562,
+      "validation_timestamp": "2025-11-10T18:13:16.371381",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Уголовно_исполнительный_кодекс_РФ.txt",
+      "file_name": "Уголовно_исполнительный_кодекс_РФ.txt",
+      "file_size": 2517865,
+      "legal_score": 4.47530388816669,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1375135,
+      "validation_timestamp": "2025-11-10T18:13:18.146460",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Бюджетный_кодекс_РФ.txt",
+      "file_name": "Бюджетный_кодекс_РФ.txt",
+      "file_size": 4670122,
+      "legal_score": 5.517129562073382,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 2603034,
+      "validation_timestamp": "2025-11-10T18:13:21.831437",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    },
+    {
+      "file_path": "/root/advakod/unified_codexes/temp_new_files/Кодекс_об_административных_правонарушениях_РФ.txt",
+      "file_name": "Кодекс_об_административных_правонарушениях_РФ.txt",
+      "file_size": 3422084,
+      "legal_score": 5.864398024590869,
+      "document_type": "federal_law",
+      "is_valid": false,
+      "text_length": 1949841,
+      "validation_timestamp": "2025-11-10T18:13:25.138279",
+      "recommendations": [
+        "Не рекомендуется для RAG системы",
+        "Федеральный закон - важный документ"
+      ]
+    }
+  ]
+}
