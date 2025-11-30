@@ -1,0 +1,43 @@
+# SSH конфигурация для сервера АДВАКОД
+# Использование: ssh advakod-server
+
+Host advakod-server
+    HostName 31.130.145.75
+    User root
+    Port 22
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    Compression yes
+
+    # Для использования SSH ключа раскомментируйте:
+    # IdentityFile ~/.ssh/id_rsa
+
+    # Дополнительные опции для стабильного соединения
+    TCPKeepAlive yes
+
+Host advakod-legacy
+    HostName 89.23.98.167
+    User root
+    Port 22
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+Host advakod-domain
+    HostName advacodex.com
+    User root
+    Port 22
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    Compression yes
+
+    # Для использования SSH ключа раскомментируйте:
+    # IdentityFile ~/.ssh/id_rsa
+
+    # Дополнительные опции для стабильного соединения
+    TCPKeepAlive yes
+
+# Настройка для всех серверов (опционально)
+# Host *
+#     ServerAliveInterval 60
+#     ServerAliveCountMax 3
+#     Compression yes
