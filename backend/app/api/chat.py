@@ -691,6 +691,7 @@ async def get_chat_messages(
     ).first()
     
     if not session:
+        logger.warning(f"User {current_user.id} ({current_user.email}) tried to access non-existent session {session_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Сессия чата не найдена"
@@ -973,12 +974,29 @@ async def send_message_stream(
                     )
                 logger.info(f"Вызываем unified_llm_service.generate_response (stream, режим: {chat_mode}) с промптом {'С историей' if chat_history else 'БЕЗ истории'}: {prompt[:100]}...")
                 chunk_sent_count = 0
+                
+                # Определяем приоритет: для новых пользователей (первый запрос) - высокий приоритет
+                from ..services.unified_llm_service import RequestPriority
+                # Проверяем количество сообщений через запрос к БД (session.message_count не существует)
+                # Учитываем, что user_message уже сохранен, поэтому проверяем количество assistant сообщений
+                # Первое сообщение = нет истории И нет предыдущих ответов от AI
+                assistant_message_count = db.query(ChatMessage).filter(
+                    ChatMessage.session_id == session.id,
+                    ChatMessage.role == "assistant"
+                ).count()
+                is_first_message = not chat_history and assistant_message_count == 0
+                priority = RequestPriority.HIGH if is_first_message else RequestPriority.NORMAL
+                if is_first_message:
+                    logger.info(f"🚀 Первый запрос от нового пользователя {current_user.id}, устанавливаем высокий приоритет")
+                
                 async for chunk in unified_llm_service.generate_response(
                     prompt=prompt,
                     max_tokens=config["max_tokens"],
                     temperature=config["temperature"],
                     top_p=config["top_p"],
-                    stream=True
+                    stream=True,
+                    user_id=str(current_user.id),
+                    priority=priority
                 ):
                     chunk_sent_count += 1
                     # Обрабатываем маркер двухфазной генерации отдельно
@@ -997,11 +1015,19 @@ async def send_message_stream(
                         logger.info(f"📤 Отправлен чанк {chunk_sent_count} клиенту: {chunk[:50]}... (длина: {len(chunk)})")
                 logger.info(f"✅ Unified LLM сервис завершил стриминг: отправлено {chunk_sent_count} чанков, общая длина ответа: {len(full_response)} символов")
             except Exception as e:
-                # Простой fallback при ошибке
-                logger.info(f"Ошибка в streaming: {e}, используем fallback")
-                sources = [{"title": "AI Lawyer (Demo)", "text": "Ответ от демо-версии ИИ-юриста"}]
-                fallback_text = f"Извините, произошла ошибка при обработке вашего запроса: {chat_request.message}"
-                yield f"data: {json.dumps({'type': 'chunk', 'content': fallback_text})}\n\n"
+                # Улучшенная обработка ошибок с логированием и отправкой клиенту
+                logger.error(f"Ошибка в streaming генерации ответа: {e}", exc_info=True)
+                
+                # Отправляем ошибку клиенту через SSE
+                error_message = "Извините, произошла ошибка при генерации ответа. Попробуйте еще раз."
+                try:
+                    yield f"data: {json.dumps({'type': 'error', 'content': error_message, 'error_code': 'generation_error'})}\n\n"
+                except Exception as send_err:
+                    logger.error(f"Не удалось отправить сообщение об ошибке клиенту: {send_err}")
+                
+                # Используем fallback ответ
+                sources = [{"title": "Система", "text": "Ответ не может быть сгенерирован из-за технической ошибки"}]
+                fallback_text = error_message
                 full_response = fallback_text
 
             
@@ -1039,21 +1065,30 @@ async def send_message_stream(
             yield f"data: {json.dumps({'type': 'end', 'message_id': assistant_message.id, 'processing_time': processing_time})}\n\n"
                 
         except Exception as e:
-            logger.error(f"Ошибка в стриминг chat API: {e}")
+            logger.error(f"Критическая ошибка в стриминг chat API: {e}", exc_info=True)
             error_message = "Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз."
             
             # Сохраняем сообщение об ошибке
-            assistant_message = ChatMessage(
-                session_id=session.id,
-                role="assistant",
-                content=error_message,
-                message_metadata={"error": str(e)}
-            )
-            db.add(assistant_message)
-            db.commit()
-            db.refresh(assistant_message)
+            try:
+                assistant_message = ChatMessage(
+                    session_id=session.id,
+                    role="assistant",
+                    content=error_message,
+                    message_metadata={"error": str(e), "error_type": type(e).__name__}
+                )
+                db.add(assistant_message)
+                db.commit()
+                db.refresh(assistant_message)
+                message_id = assistant_message.id
+            except Exception as db_err:
+                logger.error(f"Не удалось сохранить сообщение об ошибке в БД: {db_err}")
+                message_id = None
             
-            yield f"data: {json.dumps({'type': 'error', 'content': error_message, 'message_id': assistant_message.id})}\n\n"
+            # Отправляем ошибку клиенту
+            try:
+                yield f"data: {json.dumps({'type': 'error', 'content': error_message, 'message_id': message_id, 'error_code': 'critical_error'})}\n\n"
+            except Exception as send_err:
+                logger.error(f"Не удалось отправить сообщение об ошибке клиенту: {send_err}")
     
     return StreamingResponse(
         generate_stream(),

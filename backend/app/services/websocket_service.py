@@ -707,13 +707,27 @@ class WebSocketService:
         
         await self.manager.broadcast_message_update(message_data, session_id)
     
-    async def notify_session_update(self, session: ChatSession, user_id: int):
+    async def notify_session_update(self, session: ChatSession, user_id: int, db: Session = None):
         """Уведомление об обновлении сессии через WebSocket"""
+        # Вычисляем количество сообщений (session.message_count не существует)
+        message_count = 0
+        try:
+            # Пытаемся использовать relationship, если он загружен
+            if hasattr(session, 'messages') and session.messages is not None:
+                message_count = len(session.messages)
+            elif db is not None:
+                # Если relationship не загружен, используем запрос к БД
+                from ..models.chat import ChatMessage
+                message_count = db.query(ChatMessage).filter(ChatMessage.session_id == session.id).count()
+        except Exception as e:
+            logger.warning(f"Ошибка при получении количества сообщений для сессии {session.id}: {e}")
+            message_count = 0
+        
         session_data = {
             "id": session.id,
             "title": session.title,
             "updated_at": session.updated_at.isoformat() if session.updated_at else None,
-            "message_count": session.message_count
+            "message_count": message_count
         }
         
         await self.manager.broadcast_session_update(session_data, user_id)
