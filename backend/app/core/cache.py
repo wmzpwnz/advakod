@@ -101,8 +101,47 @@ class CacheService:
             logger.info("Redis недоступен, используется in-memory кэш")
             self._initialized = False
     
+    async def _ensure_redis_connection(self):
+        """Проверяет и восстанавливает соединение с Redis при необходимости"""
+        if not REDIS_AVAILABLE:
+            return False
+        
+        if self.redis_client and self._initialized:
+            try:
+                await self.redis_client.ping()
+                return True
+            except Exception:
+                # Соединение разорвано, пытаемся переподключиться
+                logger.warning("Redis соединение разорвано, пытаемся переподключиться...")
+                self._initialized = False
+                self.redis_client = None
+        
+        # Пытаемся переподключиться
+        try:
+            self.redis_client = redis.from_url(
+                self.redis_url,
+                encoding="utf-8",
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5,
+                retry_on_timeout=True
+            )
+            await self.redis_client.ping()
+            self._initialized = True
+            logger.info("Redis соединение восстановлено")
+            return True
+        except Exception as e:
+            logger.warning(f"Не удалось переподключиться к Redis: {e}")
+            self.redis_client = None
+            self._initialized = False
+            return False
+    
     async def get(self, key: str) -> Optional[Any]:
         """Получение значения из кэша"""
+        # Проверяем и восстанавливаем соединение при необходимости
+        if REDIS_AVAILABLE:
+            await self._ensure_redis_connection()
+        
         if self.redis_client and self._initialized:
             try:
                 value = await self.redis_client.get(key)
@@ -121,6 +160,10 @@ class CacheService:
         try:
             serialized_value = json.dumps(value, ensure_ascii=False, default=str)
             
+            # Проверяем и восстанавливаем соединение при необходимости
+            if REDIS_AVAILABLE:
+                await self._ensure_redis_connection()
+            
             if self.redis_client and self._initialized:
                 try:
                     await self.redis_client.setex(key, ttl, serialized_value)
@@ -138,6 +181,10 @@ class CacheService:
     
     async def delete(self, key: str) -> bool:
         """Удаление значения из кэша"""
+        # Проверяем и восстанавливаем соединение при необходимости
+        if REDIS_AVAILABLE:
+            await self._ensure_redis_connection()
+        
         if self.redis_client and self._initialized:
             try:
                 result = await self.redis_client.delete(key)

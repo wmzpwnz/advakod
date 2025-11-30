@@ -491,22 +491,27 @@ async def send_message(
         if not cached_response:
             # ДОБАВЛЕНО: Проверяем готовность модели перед генерацией
             if not unified_llm_service.is_model_ready():
-                model_status = await unified_llm_service.get_model_status()
-                if not model_status.get("model_loaded"):
-                    logger.warning(f"AI модель не загружена для пользователя {current_user.id}")
-                    response_text = "AI-консультант временно недоступен. Система находится в процессе инициализации. Пожалуйста, попробуйте через несколько минут."
-                    actual_cost = 10
-                    sources = [{"title": "Система", "text": "Уведомление о недоступности AI"}]
-                elif model_status.get("active_requests", 0) >= model_status.get("max_concurrency", 1):
-                    logger.warning(f"Система перегружена для пользователя {current_user.id}")
-                    response_text = "Система временно перегружена. Пожалуйста, попробуйте через несколько секунд."
-                    actual_cost = 10
-                    sources = [{"title": "Система", "text": "Уведомление о перегрузке"}]
-                else:
-                    logger.warning(f"AI модель не готова для пользователя {current_user.id}: {model_status}")
-                    response_text = "AI-консультант временно недоступен. Попробуйте позже."
-                    actual_cost = 10
-                    sources = [{"title": "Система", "text": "Уведомление о недоступности"}]
+                # Пытаемся загрузить модель, если она не загружена
+                logger.info(f"Модель не загружена, пытаемся загрузить для пользователя {current_user.id}")
+                model_loaded = await unified_llm_service.ensure_model_loaded_async()
+                
+                if not model_loaded or not unified_llm_service.is_model_ready():
+                    model_status = await unified_llm_service.get_model_status()
+                    if not model_status.get("model_loaded"):
+                        logger.warning(f"AI модель не загружена для пользователя {current_user.id} после попытки загрузки")
+                        response_text = "AI-консультант временно недоступен. Система находится в процессе инициализации. Пожалуйста, попробуйте через несколько минут."
+                        actual_cost = 10
+                        sources = [{"title": "Система", "text": "Уведомление о недоступности AI"}]
+                    elif model_status.get("active_requests", 0) >= model_status.get("max_concurrency", 1):
+                        logger.warning(f"Система перегружена для пользователя {current_user.id}")
+                        response_text = "Система временно перегружена. Пожалуйста, попробуйте через несколько секунд."
+                        actual_cost = 10
+                        sources = [{"title": "Система", "text": "Уведомление о перегрузке"}]
+                    else:
+                        logger.warning(f"AI модель не готова для пользователя {current_user.id}: {model_status}")
+                        response_text = "AI-консультант временно недоступен. Попробуйте позже."
+                        actual_cost = 10
+                        sources = [{"title": "Система", "text": "Уведомление о недоступности"}]
             else:
                 try:
                     if prompt is None:
@@ -988,6 +993,15 @@ async def send_message_stream(
                 priority = RequestPriority.HIGH if is_first_message else RequestPriority.NORMAL
                 if is_first_message:
                     logger.info(f"🚀 Первый запрос от нового пользователя {current_user.id}, устанавливаем высокий приоритет")
+                
+                # Проверяем готовность модели перед streaming генерацией
+                if not unified_llm_service.is_model_ready():
+                    logger.info(f"Модель не загружена для streaming, пытаемся загрузить для пользователя {current_user.id}")
+                    model_loaded = await unified_llm_service.ensure_model_loaded_async()
+                    if not model_loaded or not unified_llm_service.is_model_ready():
+                        error_message = "AI-консультант временно недоступен. Система находится в процессе инициализации. Пожалуйста, попробуйте через несколько минут."
+                        yield f"data: {json.dumps({'type': 'error', 'content': error_message, 'error_code': 'model_not_loaded'})}\n\n"
+                        return
                 
                 async for chunk in unified_llm_service.generate_response(
                     prompt=prompt,
