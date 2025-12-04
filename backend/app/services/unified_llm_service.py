@@ -642,12 +642,14 @@ class UnifiedLLMService:
                     watchdog_thread.start()
                     
                     logger.info("🔄 Starting iteration over stream_iter...")
+                    logger.info(f"🔍 stream_iter type: {type(stream_iter)}, is iterable: {hasattr(stream_iter, '__iter__')}")
+                    
                     iteration_started = False
                     for chunk in stream_iter:
                         if not iteration_started:
                             iteration_started = True
                             elapsed_iter = time.time() - start_time
-                            logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s")
+                            logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s - chunk type: {type(chunk)}")
                         # Проверяем флаг остановки перед обработкой каждого чанка
                         if stop_event.is_set():
                             logger.warning("🛑 Generation stopped by watchdog")
