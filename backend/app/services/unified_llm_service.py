@@ -680,7 +680,7 @@ class UnifiedLLMService:
                         # Отслеживаем время первого токена для диагностики (после получения)
                         if chunk_count == 1 and first_token_time[0] is None:
                             first_token_time[0] = elapsed
-                            logger.info(f"⚡ First token generated in {first_token_time[0]:.2f}s")
+                            logger.info(f"⚡ First chunk received in {first_token_time[0]:.2f}s")
                             # НЕ останавливаем генерацию - только фиксируем время первого токена
                             # Watchdog сам остановится, когда увидит, что first_token_time[0] не None
                         
@@ -689,6 +689,14 @@ class UnifiedLLMService:
                             choices[0].get("delta", {}).get("content")  # Chat completion
                             or choices[0].get("text", "")  # Fallback для прямого вызова
                         )
+                        
+                        # Первый чанк в chat completion формате содержит только role, это нормально
+                        if chunk_count == 1 and not delta:
+                            delta_dict = choices[0].get("delta", {})
+                            if delta_dict.get("role") == "assistant":
+                                logger.debug(f"✅ First chunk with role='assistant' (normal for chat completion)")
+                                continue  # Пропускаем служебный чанк с role
+                        
                         if delta:
                             # Отправляем токен только если не было таймаута
                             if not timeout_triggered[0]:
@@ -708,8 +716,8 @@ class UnifiedLLMService:
                                     loop.call_soon_threadsafe(q.put_nowait, "__QUICK_RESPONSE_READY__")
                                     logger.info(f"✅ Quick response ready after {len(accumulated_text)} characters ({chunk_count} chunks)")
                         else:
-                            # Логируем пустые чанки для диагностики
-                            if chunk_count <= 5:
+                            # Логируем пустые чанки для диагностики (только если это не первый служебный чанк)
+                            if chunk_count > 1 and chunk_count <= 5:
                                 logger.warning(f"⚠️ Chunk {chunk_count} has no delta: choices={choices[0] if choices else 'empty'}")
                         
                         # Проверка таймаута каждые 10 чанков для более быстрого обнаружения проблем
