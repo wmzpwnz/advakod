@@ -524,7 +524,21 @@ class UnifiedLLMService:
     async def _stream_response_internal(self, request: LLMRequest) -> AsyncGenerator[str, None]:
         """Внутренний метод для streaming ответа"""
         try:
-            await self.ensure_model_loaded_async()
+            # КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся, что модель действительно загружена
+            model_loaded = await self.ensure_model_loaded_async()
+            if not model_loaded:
+                error_msg = "[ERROR] Модель не загружена. Попробуйте через несколько секунд."
+                logger.error("❌ Модель не загружена перед генерацией!")
+                yield error_msg
+                return
+            
+            # Дополнительная проверка: модель должна существовать
+            if not self.model or not self.is_model_loaded():
+                error_msg = "[ERROR] Модель недоступна. Система перезагружается."
+                logger.error("❌ Модель недоступна: model=%s, loaded=%s", self.model is not None, self.is_model_loaded())
+                yield error_msg
+                return
+            
             await self._ensure_batch_for_prompt(len(request.prompt))
             self._ensure_semaphore()
 
@@ -542,8 +556,20 @@ class UnifiedLLMService:
 
             def worker():
                 try:
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА перед генерацией
+                    if not self.model:
+                        logger.error("❌ Model is None in worker thread!")
+                        loop.call_soon_threadsafe(q.put_nowait, "[ERROR] Модель не загружена. Попробуйте позже.")
+                        return
+                    
+                    if not hasattr(self.model, 'create_chat_completion'):
+                        logger.error("❌ Model has no create_chat_completion method!")
+                        loop.call_soon_threadsafe(q.put_nowait, "[ERROR] Модель не поддерживает генерацию.")
+                        return
+                    
                     logger.info(f"🚀 Starting model generation with prompt: {request.prompt[:100]}...")
                     logger.info(f"📊 Model settings: max_tokens={allowed_max}, temperature={request.temperature}, top_p={request.top_p}")
+                    logger.info(f"✅ Model check: model={self.model is not None}, type={type(self.model)}")
                     
                     chunk_count = 0
                     
@@ -582,13 +608,20 @@ class UnifiedLLMService:
                     QUICK_RESPONSE_THRESHOLD = 256  # Порог для быстрого ответа (примерно 200-300 символов)
                     
                     # Используем create_chat_completion (как в стабильной версии на GitHub)
-                    stream_iter = self.model.create_chat_completion(
-                        messages=[
-                            {"role": "user", "content": request.prompt},
-                        ],
-                        stream=True,
-                        **{k: v for k, v in generation_params.items() if k != "stream"}
-                    )
+                    logger.info(f"🔧 Calling create_chat_completion with params: {generation_params}")
+                    try:
+                        stream_iter = self.model.create_chat_completion(
+                            messages=[
+                                {"role": "user", "content": request.prompt},
+                            ],
+                            stream=True,
+                            **{k: v for k, v in generation_params.items() if k != "stream"}
+                        )
+                        logger.info(f"✅ create_chat_completion returned iterator: {stream_iter is not None}")
+                    except Exception as e:
+                        logger.error(f"❌ Error calling create_chat_completion: {e}", exc_info=True)
+                        loop.call_soon_threadsafe(q.put_nowait, f"[ERROR] Ошибка запуска генерации: {str(e)}")
+                        return
                     
                     # Реальный watchdog с использованием stop_event для остановки генерации
                     FIRST_TOKEN_TIMEOUT = 25  # Таймаут для первого токена (25 секунд)
@@ -608,7 +641,13 @@ class UnifiedLLMService:
                     watchdog_thread = threading.Thread(target=watchdog, daemon=True)
                     watchdog_thread.start()
                     
+                    logger.info("🔄 Starting iteration over stream_iter...")
+                    iteration_started = False
                     for chunk in stream_iter:
+                        if not iteration_started:
+                            iteration_started = True
+                            elapsed_iter = time.time() - start_time
+                            logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s")
                         # Проверяем флаг остановки перед обработкой каждого чанка
                         if stop_event.is_set():
                             logger.warning("🛑 Generation stopped by watchdog")
