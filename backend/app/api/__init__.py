@@ -17,6 +17,7 @@ from .moderation import router as moderation_router  # Модерация отв
 from .marketing import router as marketing_router  # Маркетинговые инструменты и A/B тестирование
 from .project import router as project_router  # Система управления проектом
 from .codes_download import router as codes_download_router  # Система загрузки кодексов
+from .documents import router as documents_router  # Система генерации документов
 # from .backup import router as backup_router  # Система резервного копирования - temporarily disabled
 # from .websocket import router as websocket_router  # Подключается отдельно в main.py
 
@@ -78,6 +79,7 @@ api_router.include_router(moderation_router, prefix="/moderation", tags=["modera
 api_router.include_router(marketing_router, prefix="/marketing", tags=["marketing"])
 api_router.include_router(project_router, prefix="/project", tags=["project"])
 api_router.include_router(codes_download_router, prefix="/api/v1", tags=["codes"])  # Система кодексов
+api_router.include_router(documents_router, tags=["documents"])  # Система генерации документов
 # api_router.include_router(backup_router, prefix="/backup", tags=["backup"])  # Temporarily disabled
 
 # api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
