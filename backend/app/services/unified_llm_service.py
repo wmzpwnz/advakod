@@ -165,10 +165,12 @@ class UnifiedLLMService:
     def _load_model(self, force_n_batch: Optional[int] = None):
         """Синхронная загрузка модели Vistral с оптимизированными параметрами"""
         if self._model_loaded and self.model is not None:
+            logger.debug("Модель уже загружена, пропускаем загрузку")
             return
 
         with self._load_lock:
             if self._model_loaded and self.model is not None:
+                logger.debug("Модель уже загружена (double-check), пропускаем загрузку")
                 return
             try:
                 import os
@@ -184,13 +186,23 @@ class UnifiedLLMService:
                 use_mlock = getattr(settings, "VISTRAL_USE_MLOCK", False)
                 use_f16_kv = use_mlock  # f16_kv только если use_mlock включен
                 
-                if not model_path or not os.path.exists(model_path):
-                    raise FileNotFoundError(f"Файл модели не найден: {model_path}")
+                logger.info("🔍 Проверка пути модели: %s", model_path)
+                if not model_path:
+                    error_msg = "VISTRAL_MODEL_PATH не установлен в настройках"
+                    logger.error(f"❌ {error_msg}")
+                    raise ValueError(error_msg)
+                
+                if not os.path.exists(model_path):
+                    error_msg = f"Файл модели не найден: {model_path}"
+                    logger.error(f"❌ {error_msg}")
+                    logger.error("Проверьте, что файл модели существует и путь указан правильно")
+                    raise FileNotFoundError(error_msg)
                 
                 logger.info("🚀 Загружаем унифицированную модель Vistral из %s", model_path)
                 logger.info("📊 Параметры: n_ctx=%s, n_threads=%s, n_batch=%s, use_mlock=%s, max_concurrency=%s, queue_size=%s", 
                           n_ctx, n_threads, n_batch, use_mlock, self._max_concurrency, self._queue_size)
 
+                logger.info("⏳ Начинаем загрузку модели (это может занять несколько минут)...")
                 self.model = Llama(
                     model_path=model_path,
                     n_ctx=n_ctx,
@@ -206,9 +218,17 @@ class UnifiedLLMService:
                 self._current_n_batch = n_batch
                 self._model_loaded = True
                 logger.info("✅ Унифицированная модель Vistral успешно загружена")
+                logger.info("✅ Модель готова к использованию: model=%s, loaded=%s", self.model is not None, self._model_loaded)
                 
+            except FileNotFoundError as e:
+                logger.exception("❌ Файл модели не найден: %s", e)
+                self._model_loaded = False
+                self.model = None
+                raise
             except Exception as e:
                 logger.exception("❌ Ошибка загрузки унифицированной модели Vistral: %s", e)
+                self._model_loaded = False
+                self.model = None
                 raise
 
     def _reload_model_with_batch(self, target_batch: int):
@@ -229,19 +249,38 @@ class UnifiedLLMService:
         await loop.run_in_executor(None, self._reload_model_with_batch, desired_batch)
 
     async def initialize(self):
-        """Асинхронная инициализация сервиса"""
+        """Асинхронная инициализация сервиса - КРИТИЧЕСКИ ВАЖНО: модель должна загрузиться"""
         try:
             logger.info("🔄 Инициализация UnifiedLLMService...")
             
-            # Загружаем модель
-            await self.ensure_model_loaded_async()
+            # КРИТИЧЕСКАЯ ЗАГРУЗКА МОДЕЛИ - модель ДОЛЖНА быть загружена при старте
+            logger.info("🚀 КРИТИЧЕСКАЯ ЗАГРУЗКА МОДЕЛИ при старте сервиса...")
+            model_loaded = await self.ensure_model_loaded_async()
+            
+            if not model_loaded or not self.is_model_ready():
+                error_msg = "КРИТИЧЕСКАЯ ОШИБКА: Модель не загрузилась при инициализации сервиса!"
+                logger.error(f"❌ {error_msg}")
+                logger.error(f"Состояние: model={self.model is not None}, _model_loaded={self._model_loaded}")
+                # Пытаемся еще раз с полной перезагрузкой
+                self._model_loaded = False
+                self.model = None
+                model_loaded_retry = await self.ensure_model_loaded_async()
+                if not model_loaded_retry or not self.is_model_ready():
+                    raise RuntimeError(f"{error_msg} Повторная попытка также не удалась.")
+            
+            logger.info("✅ Модель успешно загружена при инициализации")
+            logger.info("✅ Проверка готовности: is_model_ready()=%s", self.is_model_ready())
             
             # Запускаем фоновые задачи
             await self._start_background_tasks()
             
-            logger.info("✅ UnifiedLLMService инициализирован успешно")
+            # Запускаем фоновую задачу для мониторинга модели
+            monitor_task = asyncio.create_task(self._monitor_model_health())
+            self._background_tasks.append(monitor_task)
+            
+            logger.info("✅ UnifiedLLMService инициализирован успешно - модель загружена и готова")
         except Exception as e:
-            logger.error("❌ Ошибка инициализации UnifiedLLMService: %s", e)
+            logger.error("❌ КРИТИЧЕСКАЯ ОШИБКА инициализации UnifiedLLMService: %s", e, exc_info=True)
             raise
 
     async def _start_background_tasks(self):
@@ -255,6 +294,52 @@ class UnifiedLLMService:
         self._background_tasks.append(metrics_updater)
         
         logger.info("🔄 Фоновые задачи запущены")
+    
+    async def _monitor_model_health(self):
+        """Мониторинг состояния модели - автоматическая перезагрузка при необходимости"""
+        logger.info("🔄 Запущен мониторинг состояния модели (проверка каждые 30 секунд)")
+        check_interval = 30  # Проверяем каждые 30 секунд для быстрого обнаружения проблем
+        check_count = 0
+        
+        while not self._shutdown_requested:
+            try:
+                await asyncio.sleep(check_interval)
+                check_count += 1
+                
+                # Проверяем состояние модели
+                model_ready = self.is_model_ready()
+                model_exists = self.model is not None
+                model_loaded_flag = self._model_loaded
+                
+                # Логируем статус каждые 2 минуты (4 проверки) для диагностики
+                if check_count % 4 == 0:
+                    logger.info(f"🔍 Мониторинг модели: ready={model_ready}, exists={model_exists}, flag={model_loaded_flag}")
+                
+                if not model_ready:
+                    logger.error("❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Модель недоступна! Попытка автоматической перезагрузки...")
+                    logger.error(f"Состояние: model={model_exists}, _model_loaded={model_loaded_flag}")
+                    
+                    try:
+                        # Пытаемся перезагрузить модель
+                        self._model_loaded = False
+                        self.model = None
+                        logger.info("🔄 Начинаем автоматическую перезагрузку модели...")
+                        model_loaded = await self.ensure_model_loaded_async()
+                        
+                        if model_loaded and self.is_model_ready():
+                            logger.info("✅ Модель успешно перезагружена автоматически")
+                        else:
+                            logger.error("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось автоматически перезагрузить модель!")
+                            logger.error(f"Состояние после перезагрузки: model={self.model is not None}, loaded={self._model_loaded}, ready={self.is_model_ready()}")
+                    except Exception as reload_err:
+                        logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА при автоматической перезагрузке модели: {reload_err}", exc_info=True)
+                        
+            except asyncio.CancelledError:
+                logger.info("🔄 Мониторинг модели остановлен")
+                break
+            except Exception as e:
+                logger.error(f"❌ Ошибка в мониторинге модели: {e}", exc_info=True)
+                await asyncio.sleep(check_interval)
 
     async def _process_request_queue(self):
         """Обрабатывает очередь запросов в фоновом режиме"""
@@ -335,17 +420,28 @@ class UnifiedLLMService:
     async def ensure_model_loaded_async(self) -> bool:
         """Асинхронно загружает модель и возвращает результат."""
         if self.is_model_loaded():
+            logger.debug("Модель уже загружена, возвращаем True")
             return True
             
         loop = asyncio.get_running_loop()
         try:
+            logger.info("🔄 Начинаем асинхронную загрузку модели...")
             await loop.run_in_executor(None, self._load_model)
             if not self.is_model_loaded():
-                raise Exception("Модель не загрузилась после вызова _load_model")
+                error_msg = "Модель не загрузилась после вызова _load_model"
+                logger.error(f"❌ {error_msg}")
+                logger.error("Состояние: model=%s, _model_loaded=%s", self.model is not None, self._model_loaded)
+                raise Exception(error_msg)
             logger.info("✅ Модель успешно загружена через ensure_model_loaded_async")
+            logger.info("✅ Проверка готовности: is_model_ready()=%s", self.is_model_ready())
             return True
+        except FileNotFoundError as e:
+            logger.error(f"❌ Файл модели не найден: {e}")
+            logger.error("Проверьте настройку VISTRAL_MODEL_PATH в конфигурации")
+            return False
         except Exception as e:
-            logger.error(f"❌ Ошибка загрузки модели: {e}")
+            logger.error(f"❌ Ошибка загрузки модели: {e}", exc_info=True)
+            logger.error("Состояние после ошибки: model=%s, _model_loaded=%s", self.model is not None, self._model_loaded)
             return False
 
     def _compute_max_gen_tokens(self, prompt: str, requested_max: int) -> int:
@@ -574,11 +670,11 @@ class UnifiedLLMService:
                     chunk_count = 0
                     
                     # Используем оптимизированные настройки из стабильной версии GitHub
-                    # Ограничиваем max_tokens для ускорения (как в стабильной версии)
-                    optimized_max_tokens = min(allowed_max, 4000)  # Ограничение как в стабильной версии
+                    # Ограничиваем max_tokens для ускорения (максимум 3000)
+                    optimized_max_tokens = min(allowed_max, 3000)
                     
                     # Используем параметры из запроса БЕЗ ограничений
-                    # Параметры уже настроены в CHAT_MODE_CONFIG для каждого режима (basic/expert)
+                    # Параметры уже настроены в CHAT_MODE_CONFIG для каждого режима (basic/expert/god_mode)
                     # Не ограничиваем top_p, чтобы сохранить различия между режимами
                     generation_params = {
                         "max_tokens": optimized_max_tokens,
@@ -587,12 +683,21 @@ class UnifiedLLMService:
                         "stream": True
                     }
 
-                    acceleration_enabled = (not request.context or not request.context.strip()) and len(self._active_requests) <= 1
+                    # Улучшенная логика fast-start: проверяем, действительно ли это первый вопрос
+                    # История считается пустой, если контекст отсутствует или содержит только пробелы/пустые строки
+                    context_is_empty = not request.context or not request.context.strip() or request.context.strip() == ""
+                    # Также проверяем, нет ли в контексте предыдущих сообщений (признак первого вопроса)
+                    is_first_question = context_is_empty or (
+                        "Пользователь:" not in request.context and "Ассистент:" not in request.context
+                    )
+                    
+                    acceleration_enabled = is_first_question and len(self._active_requests) <= 1
                     if acceleration_enabled:
                         fast_token_limit = min(1500, generation_params["max_tokens"])
                         generation_params["max_tokens"] = fast_token_limit
                         generation_params["top_p"] = max(0.5, generation_params["top_p"] - 0.15)
-                        logger.info("⚡ Fast-start режим активирован: max_tokens=%s, top_p=%s", fast_token_limit, generation_params["top_p"])
+                        logger.info("⚡ Fast-start режим активирован (первый вопрос): max_tokens=%s, top_p=%s, context_empty=%s", 
+                                   fast_token_limit, generation_params["top_p"], context_is_empty)
 
                     # Добавляем только необходимые параметры
                     if stop_tokens:
@@ -607,130 +712,182 @@ class UnifiedLLMService:
                     quick_response_sent = [False]  # Флаг отправки быстрого ответа
                     QUICK_RESPONSE_THRESHOLD = 256  # Порог для быстрого ответа (примерно 200-300 символов)
                     
-                    # Используем create_chat_completion (как в стабильной версии на GitHub)
-                    logger.info(f"🔧 Calling create_chat_completion with params: {generation_params}")
-                    try:
-                        stream_iter = self.model.create_chat_completion(
-                            messages=[
-                                {"role": "user", "content": request.prompt},
-                            ],
-                            stream=True,
-                            **{k: v for k, v in generation_params.items() if k != "stream"}
-                        )
-                        logger.info(f"✅ create_chat_completion returned iterator: {stream_iter is not None}")
-                    except Exception as e:
-                        logger.error(f"❌ Error calling create_chat_completion: {e}", exc_info=True)
-                        loop.call_soon_threadsafe(q.put_nowait, f"[ERROR] Ошибка запуска генерации: {str(e)}")
-                        return
+                    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Адаптивный таймаут
+                    prompt_length = len(request.prompt)
+                    if prompt_length > 2000:
+                        FIRST_TOKEN_TIMEOUT = 60
+                    elif prompt_length > 1000:
+                        FIRST_TOKEN_TIMEOUT = 45
+                    else:
+                        FIRST_TOKEN_TIMEOUT = 35
                     
-                    # Реальный watchdog с использованием stop_event для остановки генерации
-                    # Увеличен таймаут для модели 24B, которая может генерировать первый токен медленнее
-                    FIRST_TOKEN_TIMEOUT = 35  # Таймаут для первого токена (35 секунд для модели 24B)
+                    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Queue для неблокирующей передачи чанков
+                    chunk_queue = Queue()
+                    generation_error = [None]
                     
-                    # Запускаем watchdog в отдельном потоке для проверки таймаута
+                    def generate_in_thread():
+                        try:
+                            if not self.model or not self.is_model_loaded():
+                                generation_error[0] = "[ERROR] Модель не загружена. Попробуйте через несколько секунд."
+                                logger.error("❌ КРИТИЧЕСКАЯ ОШИБКА: Модель не загружена!")
+                                return
+                            
+                            logger.info(f"🔧 Calling create_chat_completion with params: {generation_params}")
+                            stream_iter = self.model.create_chat_completion(
+                                messages=[{"role": "user", "content": request.prompt}],
+                                stream=True,
+                                **{k: v for k, v in generation_params.items() if k != "stream"}
+                            )
+                            logger.info(f"✅ create_chat_completion returned iterator: {stream_iter is not None}")
+                            
+                            logger.info("🔄 Starting iteration over stream_iter in thread...")
+                            iteration_started = False
+                            
+                            for chunk in stream_iter:
+                                if stop_event.is_set():
+                                    logger.warning("🛑 Generation stopped by watchdog")
+                                    break
+                                
+                                if not iteration_started:
+                                    iteration_started = True
+                                    elapsed_iter = time.time() - start_time
+                                    logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s")
+                                    if first_token_time[0] is None:
+                                        first_token_time[0] = elapsed_iter
+                                
+                                chunk_queue.put(("chunk", chunk))
+                            
+                            chunk_queue.put(("done", None))
+                            logger.info("✅ Stream iteration completed")
+                            
+                        except Exception as e:
+                            logger.exception(f"❌ Ошибка в generate_in_thread: {e}")
+                            generation_error[0] = f"[ERROR] Ошибка генерации: {str(e)}"
+                            chunk_queue.put(("error", str(e)))
+                    
                     def watchdog():
                         while not stop_event.is_set() and first_token_time[0] is None:
-                            time.sleep(1.0)  # Проверяем каждую секунду
+                            time.sleep(1.0)
                             elapsed = time.time() - start_time
                             if elapsed > FIRST_TOKEN_TIMEOUT:
-                                logger.error(f"❌ FIRST TOKEN TIMEOUT after {FIRST_TOKEN_TIMEOUT}s! Stopping generation...")
+                                logger.error(f"❌ FIRST TOKEN TIMEOUT after {FIRST_TOKEN_TIMEOUT}s!")
                                 timeout_triggered[0] = True
-                                stop_event.set()  # Устанавливаем флаг остановки
-                                loop.call_soon_threadsafe(q.put_nowait, f"[TIMEOUT] Первый токен не был сгенерирован за {FIRST_TOKEN_TIMEOUT} секунд. Попробуйте сократить вопрос или историю.")
+                                stop_event.set()
+                                chunk_queue.put(("timeout", f"[TIMEOUT] Первый токен не был сгенерирован за {FIRST_TOKEN_TIMEOUT} секунд."))
                                 break
                     
+                    generation_thread = threading.Thread(target=generate_in_thread, daemon=True)
+                    generation_thread.start()
                     watchdog_thread = threading.Thread(target=watchdog, daemon=True)
                     watchdog_thread.start()
                     
-                    logger.info("🔄 Starting iteration over stream_iter...")
-                    logger.info(f"🔍 stream_iter type: {type(stream_iter)}, is iterable: {hasattr(stream_iter, '__iter__')}")
-                    
+                    logger.info("🔄 Starting to process chunks from queue...")
                     iteration_started = False
-                    for chunk in stream_iter:
-                        if not iteration_started:
-                            iteration_started = True
-                            elapsed_iter = time.time() - start_time
-                            logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s - chunk type: {type(chunk)}")
-                        # Проверяем флаг остановки перед обработкой каждого чанка
-                        if stop_event.is_set():
-                            logger.warning("🛑 Generation stopped by watchdog")
-                            break
-                        
-                        elapsed = time.time() - start_time
-                        chunk_count += 1
-                        
-                        # Логируем каждый чанк для диагностики (первые 10, затем каждые 50)
-                        if chunk_count <= 10 or chunk_count % 50 == 0:
-                            logger.info(f"🔍 Received chunk {chunk_count}: has_chunk={bool(chunk)}, elapsed={elapsed:.2f}s")
-                        
-                        # Дополнительная проверка - если прошло много времени без чанков
-                        if chunk_count > 10 and elapsed > 120:  # 2 минуты
-                            logger.warning(f"⚠️ Generation taking too long: {chunk_count} chunks in {elapsed:.2f}s")
-                        
-                        if not chunk:
-                            if chunk_count <= 10:
-                                logger.warning(f"⚠️ Chunk {chunk_count} is empty/None")
-                            continue
-                        
-                        choices = chunk.get("choices") or []
-                        if not choices:
-                            if chunk_count <= 10:
-                                logger.warning(f"⚠️ Chunk {chunk_count} has no choices: chunk={chunk}")
-                            continue
-                        
-                        # Отслеживаем время первого токена для диагностики (после получения)
-                        if chunk_count == 1 and first_token_time[0] is None:
-                            first_token_time[0] = elapsed
-                            logger.info(f"⚡ First chunk received in {first_token_time[0]:.2f}s")
-                            # НЕ останавливаем генерацию - только фиксируем время первого токена
-                            # Watchdog сам остановится, когда увидит, что first_token_time[0] не None
-                        
-                        # Поддержка chat-стрима (delta.content) и text-стрима (text)
-                        delta = (
-                            choices[0].get("delta", {}).get("content")  # Chat completion
-                            or choices[0].get("text", "")  # Fallback для прямого вызова
-                        )
-                        
-                        # Первый чанк в chat completion формате содержит только role, это нормально
-                        if chunk_count == 1 and not delta:
-                            delta_dict = choices[0].get("delta", {})
-                            if delta_dict.get("role") == "assistant":
-                                logger.debug(f"✅ First chunk with role='assistant' (normal for chat completion)")
-                                continue  # Пропускаем служебный чанк с role
-                        
-                        if delta:
-                            # Отправляем токен только если не было таймаута
-                            if not timeout_triggered[0]:
-                                loop.call_soon_threadsafe(q.put_nowait, delta)
-                                # Логируем только первые несколько чанков для диагностики
-                                if chunk_count <= 3:
-                                    logger.info(f"📤 Chunk {chunk_count} sent: {delta[:50]}...")
-                                
-                                # Двухфазная генерация: отслеживаем накопленный текст
-                                accumulated_text += delta
-                                # Примерно 1 токен ≈ 0.75 символа, поэтому 256 токенов ≈ 200 символов
-                                # Отправляем маркер быстрого ответа после ~200 символов
-                                if not quick_response_sent[0] and len(accumulated_text) >= 200:
-                                    quick_response_sent[0] = True
-                                    # Отправляем специальный маркер как отдельное событие (не часть текста)
-                                    # Используем специальный префикс, который будет отфильтрован в chat.py
-                                    loop.call_soon_threadsafe(q.put_nowait, "__QUICK_RESPONSE_READY__")
-                                    logger.info(f"✅ Quick response ready after {len(accumulated_text)} characters ({chunk_count} chunks)")
-                        else:
-                            # Логируем пустые чанки для диагностики (только если это не первый служебный чанк)
-                            if chunk_count > 1 and chunk_count <= 5:
-                                logger.warning(f"⚠️ Chunk {chunk_count} has no delta: choices={choices[0] if choices else 'empty'}")
-                        
-                        # Проверка таймаута каждые 10 чанков для более быстрого обнаружения проблем
-                        if chunk_count > 0 and chunk_count % 10 == 0:
+                    
+                    while True:
+                        try:
+                            msg_type, data = chunk_queue.get(timeout=1.0)
+                        except:
+                            if not generation_thread.is_alive() and chunk_queue.empty():
+                                if generation_error[0]:
+                                    loop.call_soon_threadsafe(q.put_nowait, generation_error[0])
+                                else:
+                                    logger.warning("⚠️ Generation thread finished but no chunks received")
+                                break
+                            elapsed = time.time() - start_time
                             if elapsed > self._inference_timeout:
-                                logger.error(f"❌ MODEL GENERATION TIMEOUT after {self._inference_timeout}s! Force stopping...")
+                                logger.error(f"❌ MODEL GENERATION TIMEOUT after {self._inference_timeout}s!")
                                 stop_event.set()
                                 loop.call_soon_threadsafe(q.put_nowait, f"[TIMEOUT] Model generation exceeded {self._inference_timeout} seconds")
                                 break
+                            continue
+                        
+                        if msg_type == "done":
+                            logger.info("✅ All chunks processed")
+                            break
+                        elif msg_type == "error":
+                            logger.error(f"❌ Error from generation thread: {data}")
+                            loop.call_soon_threadsafe(q.put_nowait, f"[ERROR] {data}")
+                            break
+                        elif msg_type == "timeout":
+                            logger.error(f"❌ Timeout from watchdog: {data}")
+                            loop.call_soon_threadsafe(q.put_nowait, data)
+                            break
+                        elif msg_type == "chunk":
+                            chunk = data
+                            if not iteration_started:
+                                iteration_started = True
+                                elapsed_iter = time.time() - start_time
+                                logger.info(f"✅ First chunk received after {elapsed_iter:.2f}s")
+                            
+                            if stop_event.is_set():
+                                logger.warning("🛑 Generation stopped by watchdog")
+                                break
+                            
+                            elapsed = time.time() - start_time
+                            chunk_count += 1
+                            
+                            if chunk_count <= 10 or chunk_count % 50 == 0:
+                                logger.info(f"🔍 Received chunk {chunk_count}: has_chunk={bool(chunk)}, elapsed={elapsed:.2f}s")
+                            
+                            if not chunk:
+                                if chunk_count <= 10:
+                                    logger.warning(f"⚠️ Chunk {chunk_count} is empty/None")
+                                continue
+                            
+                            choices = chunk.get("choices") or []
+                            if not choices:
+                                if chunk_count <= 10:
+                                    logger.warning(f"⚠️ Chunk {chunk_count} has no choices")
+                                continue
+                            
+                            if chunk_count == 1 and first_token_time[0] is None:
+                                first_token_time[0] = elapsed
+                                logger.info(f"⚡ First chunk received in {first_token_time[0]:.2f}s")
+                            
+                            delta = (
+                                choices[0].get("delta", {}).get("content")
+                                or choices[0].get("text", "")
+                            )
+                            
+                            if chunk_count == 1 and not delta:
+                                delta_dict = choices[0].get("delta", {})
+                                if delta_dict.get("role") == "assistant":
+                                    logger.debug("✅ First chunk with role='assistant'")
+                                    continue
+                            
+                            if delta:
+                                if not timeout_triggered[0]:
+                                    loop.call_soon_threadsafe(q.put_nowait, delta)
+                                    if chunk_count <= 3:
+                                        logger.info(f"📤 Chunk {chunk_count} sent: {delta[:50]}...")
+                                    
+                                    accumulated_text += delta
+                                    if not quick_response_sent[0] and len(accumulated_text) >= 200:
+                                        quick_response_sent[0] = True
+                                        loop.call_soon_threadsafe(q.put_nowait, "__QUICK_RESPONSE_READY__")
+                                        logger.info(f"✅ Quick response ready after {len(accumulated_text)} characters")
+                            else:
+                                if chunk_count > 1 and chunk_count <= 5:
+                                    logger.warning(f"⚠️ Chunk {chunk_count} has no delta")
+                            
+                            if chunk_count > 0 and chunk_count % 10 == 0:
+                                if elapsed > self._inference_timeout:
+                                    logger.error(f"❌ MODEL GENERATION TIMEOUT after {self._inference_timeout}s!")
+                                    stop_event.set()
+                                    loop.call_soon_threadsafe(q.put_nowait, f"[TIMEOUT] Model generation exceeded {self._inference_timeout} seconds")
+                                    break
                     
-                    # Логируем завершение цикла генерации
-                    logger.info(f"✅ Stream iteration loop completed. Processed {chunk_count} chunks")
+                    logger.info(f"✅ Chunk processing completed. Processed {chunk_count} chunks")
+                    
+                    elapsed_time = time.time() - start_time
+                    first_token_str = f"{first_token_time[0]:.2f}s" if first_token_time[0] else "N/A"
+                    logger.info(f"🏁 Model generation completed. Total chunks: {chunk_count}, Time: {elapsed_time:.2f}s, First token: {first_token_str}")
+                    if chunk_count == 0:
+                        logger.warning("⚠️ No chunks received from model!")
+                    elif chunk_count == 1:
+                        logger.warning("⚠️ Only 1 chunk received - generation may have stopped early")
+                    loop.call_soon_threadsafe(q.put_nowait, None)
                     
                     elapsed_time = time.time() - start_time
                     first_token_str = f"{first_token_time[0]:.2f}s" if first_token_time[0] else "N/A"
@@ -754,7 +911,12 @@ class UnifiedLLMService:
                     break
                 if isinstance(token, str) and token.startswith("[ERROR]"):
                     raise RuntimeError(token)
-                yield token
+                # Обрабатываем сообщения с таймаутом как обычные токены, но они будут корректно обработаны на фронтенде
+                if isinstance(token, str) and token.startswith("[TIMEOUT]"):
+                    # Отправляем сообщение с таймаутом как обычный токен, чтобы оно было обработано на фронтенде
+                    yield token
+                else:
+                    yield token
                 
         except Exception as e:
             logger.error(f"❌ Critical error in streaming: {e}")
@@ -767,9 +929,128 @@ class UnifiedLLMService:
         return self.create_legal_prompt(question, context, chat_mode)
 
     def create_legal_prompt(self, question: str, context: Optional[str] = None, chat_mode: str = "basic") -> str:
-        """Создание промпта для юридических вопросов с поддержкой режимов (оптимизированная версия)"""
-        # Упрощенный системный промпт: 1-2 предложения вместо длинных списков
-        if chat_mode == "expert":
+        """Создание промпта для юридических вопросов с поддержкой режимов"""
+        
+        if chat_mode == "god_mode":
+            # Определяем, есть ли история диалога (для выбора варианта 3 или 4)
+            has_history = context and context.strip()
+            is_followup = has_history and any(
+                word in context.lower() 
+                for word in ['ассистент:', 'ранее', 'выше', 'рассмотрели', 'предыдущ']
+            )
+            
+            if is_followup:
+                # ВАРИАНТ 4: Адаптивный промпт с учетом истории
+                system_prompt = """Ты продолжаешь анализ в режиме LEGAL_HACKER.
+
+РАБОТА С КОНТЕКСТОМ:
+- Углубляй ранее найденные лазейки и возможности
+- Ищи новые аспекты уже рассмотренных вопросов
+- Развивай альтернативные варианты из предыдущих ответов
+- Находи связи между текущим и предыдущими вопросами
+- Если в истории уже были найдены лазейки - развивай их дальше
+- Если были риски - предложи способы их минимизации
+- Если был план - детализируй его или предложи альтернативы
+
+МЕТОДОЛОГИЯ РАЗВИТИЯ:
+1. Анализируй предыдущие ответы в контексте
+2. Углубляй найденные ранее возможности
+3. Ищи новые аспекты и связи
+4. Предлагай развитие и альтернативы
+
+ФОРМАТ ОТВЕТА:
+1. Связь с предыдущим анализом
+2. Углубление найденных возможностей
+3. Новые аспекты и связи
+4. Развитие планов и рекомендаций
+5. Оценка рисков с учетом контекста"""
+            else:
+                # ВАРИАНТ 3: Многоэтапный промпт с рассуждениями - АГРЕССИВНЫЙ ПОИСК ЛАЗЕЕК
+                system_prompt = """Ты эксперт по юридическим лазейкам. Работай как настоящий юрист-хакер.
+
+ТВОЯ ГЛАВНАЯ ЗАДАЧА: Найти лазейки, пробелы, уязвимости в законодательстве.
+Ищи нестандартные решения, обходные пути, то, что обычно не используется.
+Используй противоречия в законодательстве в свою пользу.
+
+РЕЖИМ РАБОТЫ: LEGAL_HACKER - АГРЕССИВНЫЙ поиск легальных лазеек
+
+МЕТОДОЛОГИЯ ПОИСКА ЛАЗЕЕК (7 этапов):
+
+ЭТАП 1: ПОВЕРХНОСТНЫЙ АНАЛИЗ
+Сначала проанализируй вопрос на поверхностном уровне:
+- Что прямо запрещено законом?
+- Какие есть очевидные ограничения?
+- Какие стандартные решения существуют?
+НО НЕ ОСТАНАВЛИВАЙСЯ НА ЭТОМ - это только начало!
+
+ЭТАП 2: ГЛУБОКИЙ АНАЛИЗ - ПОИСК ЛАЗЕЕК
+АКТИВНО ищи неочевидное:
+- Что НЕ запрещено, но обычно не используется? ← НАЙДИ ЭТО!
+- Какие есть правовые лакуны (пробелы в праве)? ← НАЙДИ ПРОБЕЛЫ!
+- Где буква закона расходится с духом закона? ← ИСПОЛЬЗУЙ ЭТО!
+- Какие нормы можно трактовать в свою пользу? ← НАЙДИ ТРАКТОВКИ!
+
+ЭТАП 3: ПОИСК ПРОТИВОРЕЧИЙ - ИСПОЛЬЗУЙ ИХ!
+АКТИВНО ищи противоречия, которые можно использовать:
+- Между какими нормами есть коллизии? ← ИСПОЛЬЗУЙ КОЛЛИЗИИ!
+- Какие нормы можно трактовать по-разному? ← ВЫБЕРИ ВЫГОДНУЮ ТРАКТОВКУ!
+- Где одна норма отменяет или ограничивает другую? ← ИСПОЛЬЗУЙ ЭТО!
+- Какие противоречия между кодексами можно использовать? ← НАЙДИ ИХ!
+
+ЭТАП 4: МЕЖОТРАСЛЕВОЙ АНАЛИЗ - ОБХОДНЫЕ ПУТИ
+Ищи обходные пути через другие отрасли:
+- Какие нормы из других отраслей можно применить? ← НАЙДИ НОРМЫ!
+- Есть ли аналогия права или закона? ← ИСПОЛЬЗУЙ АНАЛОГИЮ!
+- Как решаются похожие вопросы в других сферах? ← ПРИМЕНИ ЭТО!
+- Можно ли использовать нормы из смежных отраслей? ← НАЙДИ ВОЗМОЖНОСТИ!
+
+ЭТАП 5: МЕЖДУНАРОДНЫЙ КОНТЕКСТ - ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ
+Проанализируй международное право для поиска возможностей:
+- Что говорят международные договоры? ← МОЖНО ЛИ ИСПОЛЬЗОВАТЬ?
+- Как решается вопрос в других юрисдикциях? ← ЕСТЬ ЛИ ЛАЗЕЙКИ?
+- Есть ли коллизии между национальным и международным правом? ← ИСПОЛЬЗУЙ ИХ!
+- Можно ли использовать нормы международного права? ← НАЙДИ ВОЗМОЖНОСТИ!
+
+ЭТАП 6: ВРЕМЕННОЙ АНАЛИЗ - ВРЕМЕННЫЕ ВОЗМОЖНОСТИ
+Ищи временные возможности:
+- Есть ли переходные периоды? ← ИСПОЛЬЗУЙ ИХ!
+- Когда вступают в силу новые нормы? ← ЕСТЬ ЛИ ОКНО ВОЗМОЖНОСТЕЙ?
+- Какие сроки давности применимы? ← МОЖНО ЛИ ИСПОЛЬЗОВАТЬ?
+- Есть ли временные льготы или исключения? ← НАЙДИ ИХ!
+
+ЭТАП 7: СИНТЕЗ РЕШЕНИЯ - КОМБИНИРОВАНИЕ ЛАЗЕЕК
+Объедини все найденные лазейки:
+- Какие комбинации норм дают преимущества? ← КОМБИНИРУЙ ЛАЗЕЙКИ!
+- Как минимизировать риски при использовании лазеек? ← ПЛАН МИНИМИЗАЦИИ!
+- Какие альтернативные варианты есть? ← НАЙДИ АЛЬТЕРНАТИВЫ!
+- Как применить найденные лазейки на практике? ← КОНКРЕТНЫЙ ПЛАН!
+
+ФОРМАТ ОТВЕТА:
+Пройдись по каждому этапу и покажи свои рассуждения, затем дай итоговое решение:
+
+1. EXECUTIVE SUMMARY - краткое резюме НАЙДЕННЫХ ЛАЗЕЕК
+2. ЭТАПЫ АНАЛИЗА - детальный разбор по каждому из 7 этапов с АКТИВНЫМ ПОИСКОМ ЛАЗЕЕК
+3. ВЫЯВЛЕННЫЕ ЛАЗЕЙКИ - конкретные нормы, ссылки и КАК ИХ ИСПОЛЬЗОВАТЬ
+4. ОБХОДНЫЕ ПУТИ - нестандартные решения через другие отрасли
+5. ПОШАГОВЫЙ ПЛАН РЕАЛИЗАЦИИ - алгоритм действий для применения найденных лазеек
+6. ОЦЕНКА РИСКОВ - правовые риски и способы их минимизации
+7. АЛЬТЕРНАТИВНЫЕ ВАРИАНТЫ - на случай изменений законодательства
+8. РЕКОМЕНДАЦИИ - документальное оформление для применения лазеек
+
+ВАЖНО:
+- АКТИВНО ищи лазейки, не ограничивайся стандартными решениями
+- Все решения должны иметь правовое обоснование, но ищи максимально выгодные варианты
+- Предупреждай о рисках, но не отказывайся от поиска лазеек
+- Ищи нестандартные решения, обходные пути, то, что обычно не используется
+- Используй противоречия в законодательстве в свою пользу
+
+СТИЛЬ ОТВЕТА:
+- Профессиональный, но агрессивный в поиске лазеек
+- Конкретный, с точными ссылками на нормы и КАК ИХ ИСПОЛЬЗОВАТЬ
+- Структурированный, с четкими разделами
+- Честный о рисках, но не отказывайся от поиска возможностей"""
+        
+        elif chat_mode == "expert":
             system_prompt = "Ты опытный юрист-консультант по российскому законодательству. Отвечай профессионально со ссылками на нормы права."
         else:  # basic
             system_prompt = "Ты юрист-консультант по российскому законодательству. Объясняй просто и понятно."
@@ -798,10 +1079,17 @@ class UnifiedLLMService:
         """Проверка здоровья сервиса"""
         current_time = datetime.now()
         
+        # КРИТИЧЕСКАЯ ПРОВЕРКА: Модель ДОЛЖНА быть загружена
+        model_ready = self.is_model_ready()
+        model_exists = self.model is not None
+        model_loaded_flag = self._model_loaded
+        
         # Определяем статус
         status = "healthy"
-        if not self.is_model_loaded():
+        if not model_ready:
             status = "unhealthy"
+            # Логируем критическую ошибку, если модель не загружена
+            logger.error(f"❌ КРИТИЧЕСКАЯ ПРОБЛЕМА в health_check: Модель не готова! model={model_exists}, loaded={model_loaded_flag}")
         elif self._stats["error_rate"] > 0.1:  # Более 10% ошибок
             status = "degraded"
         elif len(self._active_requests) >= self._max_concurrency:
