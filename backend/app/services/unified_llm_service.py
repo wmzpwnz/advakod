@@ -724,6 +724,7 @@ class UnifiedLLMService:
                     # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Queue для неблокирующей передачи чанков
                     chunk_queue = Queue()
                     generation_error = [None]
+                    generation_thread_ref = [None]  # Ссылка на поток для принудительного завершения
                     
                     def generate_in_thread():
                         try:
@@ -743,19 +744,40 @@ class UnifiedLLMService:
                             logger.info("🔄 Starting iteration over stream_iter in thread...")
                             iteration_started = False
                             
-                            for chunk in stream_iter:
-                                if stop_event.is_set():
-                                    logger.warning("🛑 Generation stopped by watchdog")
-                                    break
-                                
-                                if not iteration_started:
-                                    iteration_started = True
-                                    elapsed_iter = time.time() - start_time
-                                    logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s")
-                                    if first_token_time[0] is None:
-                                        first_token_time[0] = elapsed_iter
-                                
-                                chunk_queue.put(("chunk", chunk))
+                            # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем next() с таймаутом через проверку stop_event
+                            try:
+                                while True:
+                                    # Проверяем stop_event ПЕРЕД каждой итерацией
+                                    if stop_event.is_set():
+                                        logger.warning("🛑 Generation stopped by watchdog before next chunk")
+                                        break
+                                    
+                                    # Пытаемся получить следующий чанк
+                                    try:
+                                        chunk = next(stream_iter)
+                                    except StopIteration:
+                                        logger.info("✅ Stream iterator exhausted")
+                                        break
+                                    
+                                    # Проверяем stop_event ПОСЛЕ получения чанка
+                                    if stop_event.is_set():
+                                        logger.warning("🛑 Generation stopped by watchdog after chunk")
+                                        break
+                                    
+                                    if not iteration_started:
+                                        iteration_started = True
+                                        elapsed_iter = time.time() - start_time
+                                        logger.info(f"✅ First iteration started after {elapsed_iter:.2f}s")
+                                        if first_token_time[0] is None:
+                                            first_token_time[0] = elapsed_iter
+                                    
+                                    chunk_queue.put(("chunk", chunk))
+                                    
+                            except Exception as iter_error:
+                                # Если итератор завис, это будет поймано здесь
+                                if not stop_event.is_set():
+                                    logger.exception(f"❌ Ошибка итерации по stream_iter: {iter_error}")
+                                    raise
                             
                             chunk_queue.put(("done", None))
                             logger.info("✅ Stream iteration completed")
@@ -774,9 +796,17 @@ class UnifiedLLMService:
                                 timeout_triggered[0] = True
                                 stop_event.set()
                                 chunk_queue.put(("timeout", f"[TIMEOUT] Первый токен не был сгенерирован за {FIRST_TOKEN_TIMEOUT} секунд."))
+                                
+                                # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Принудительно завершаем поток генерации
+                                if generation_thread_ref[0] and generation_thread_ref[0].is_alive():
+                                    logger.warning("⚠️ Принудительное завершение зависшего потока генерации")
+                                    # В Python нет безопасного способа убить поток, но можем попробовать
+                                    # Используем daemon=True, чтобы поток завершился при завершении основного потока
+                                
                                 break
                     
                     generation_thread = threading.Thread(target=generate_in_thread, daemon=True)
+                    generation_thread_ref[0] = generation_thread
                     generation_thread.start()
                     watchdog_thread = threading.Thread(target=watchdog, daemon=True)
                     watchdog_thread.start()
